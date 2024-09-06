@@ -7,6 +7,9 @@
 # LOC defines a location in code for looping etc
 # DEF defines a macro variable (can be 8 or 16 bit)
 # HERE statically sets the location of the next command in memory (use with caution, may skip memory locations)
+#
+# By default values indicate 8-bit data
+# Use * before value to indicate 16-bit memory address
 
 # TODO: Auto variable memory location assignment
 

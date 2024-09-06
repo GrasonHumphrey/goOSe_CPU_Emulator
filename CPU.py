@@ -240,6 +240,7 @@ class arithmetic_logic_unit:
                 self.cf[0] = result < 0
         if self.sel[0] == 0x2:
             # Bit shift left
+            # TODO: Make this shift only 1
             result = (self.alu_in_a[0] << self.alu_in_b[0])
             self.data[0] = result & 0xFF
             self.cf[0] = result > 0xFF
