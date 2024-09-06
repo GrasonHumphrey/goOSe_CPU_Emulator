@@ -1,4 +1,4 @@
-
+import sys
 
 # All values must be in hex
 # # for comment
@@ -13,61 +13,18 @@
 
 # TODO: Auto variable memory location assignment
 
+runAfterCompile = False
 
+if __name__ == "__main__":
+    f = open(sys.argv[1], "r")
+    code = f.read()
+    if (len(sys.argv) == 3):
+        if (sys.argv[2] == 1 or sys.argv[2] == "run"):
+            runAfterCompile = True
 
-
-
-
-
-
-code = """
-# Python line 21
-
-DEF sp1 *80
-DEF sp2 *81
-DEF reta *82
-DEF retb *83
-DEF tempa *84
-DEF tempb *85
-DEF op1 *86
-DEF op2 *87
-
-#SET sp1 90
-#SET sp2 0
-#SET op1 7
-#SET op2 9
-
-#PUSH sp1 sp2 op1
-#PUSH sp1 sp2 op2
-#GADD
-
-DEF count *50
-DEF sum *51
-
-MOV AR 5
-
-LOC loop
-MOV count AR
-
-MOV AR sum
-#IO AR
-ADD A
-#IO AR
-MOV sum AR
-
-MOV AR count
-DEC AR
-#IO AR
-
-JNZ loop
-
-MOV AR sum
-
-HALT
-
-
-
-"""
+#code = """
+## Python line 21
+#"""
 
 # POP(*sp1, *sp2, *ret)
 POP = """
@@ -135,7 +92,7 @@ totalVars = []
 
 
 def throwError(description, line):
-    print("ERROR: " + description + "  |  line: " + str(line+1))
+    print("ERROR: " + description + "  |  line: " + str(line+2))
     quit()
     return
 
@@ -168,7 +125,7 @@ def clean_operand(op, line):
 
     return cleanOp
 
-codeParts = code.lower().split("\n")[1:-1]
+codeParts = code.lower().split("\n")[0:-1]
 
 for line in range(len(codeParts)):
     lineParts = codeParts[line].split()
@@ -199,6 +156,7 @@ for line in range(len(codeParts)):
                 if (not (ops[1] in defVars[0])):
                     if "." not in ops[1]:
                         if "*" not in ops[1]:
+                            #print (defVars)
                             defVars[0].append(ops[1])
                             defVars[1].append(str(ops[2]))
                             totalVars.append(ops[1])
@@ -224,7 +182,9 @@ for line in range(len(codeParts)):
                 print(code)
     
 
-codeParts = code.lower().split("\n")[1:-1]
+#codeParts = code.lower().split("\n")[1:-1]
+codeParts = code.lower().split("\n")
+#print(codeParts)
 for line in range(len(codeParts)):
 
     lineParts = codeParts[line].split()
@@ -578,6 +538,15 @@ for line in range(len(codeParts)):
                 else:
                     throwError("Invalid IO (invalid register)", line)
 
+            elif (ops[0] == "call"):
+                # Unconditional jump
+                expectArgs = 2
+                if ((ops[1][0] == "*") or (ops[1] in totalVars)):
+                    cmdBytes.append("85")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                else:
+                    throwError("Can only call to memory location", line)
+
             elif (ops[0] == "set"):
                 # Set a memory location directly
                 expectArgs = 3
@@ -663,3 +632,11 @@ print(output)
 f = open("compiled_output.txt", "w")
 f.write(output)
 f.close()
+print
+print("Run after compile selected, CPU output: ")
+print
+
+if (runAfterCompile):
+    filename = 'CPU.py'
+    with open(filename) as file:
+        exec(file.read())

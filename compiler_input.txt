@@ -1,0 +1,19 @@
+mov ar 1
+mov br 7
+add br
+io ar
+
+call myfunc
+mov ar 1
+mov br 1
+add br
+io ar
+halt
+
+
+loc myfunc
+mov ar 2
+mov br 3
+add br
+io ar
+halt

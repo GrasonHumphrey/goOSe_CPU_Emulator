@@ -1,0 +1,30 @@
+DEF m1 *50
+DEF m2 *51
+DEF output *52
+
+SET m1 B
+SET m2 8
+SET output 0
+
+LOC start
+MOV ar m2
+DEC ar
+#IO ar
+JC end
+MOV m2 ar
+
+MOV ar output
+#IO ar
+MOV br m1
+#IO br
+ADD br
+#IO ar
+MOV output ar
+JMP start
+
+loc end
+
+MOV ar output
+IO ar
+
+HALT
