@@ -91,7 +91,7 @@ class instruction_pointer:
                     print("WARNING: Attempt to load IP with unassigned data bus")
                 self.adr[0] = (int(self.adr[0]) & 0x00FF) | (int(data_bus[0]) << 8)
         self.prevclk[0] = self.clk[0]
-        
+
         if self.eip[0]:
             if self.adr[0] == 'x':
                 print("WARNING: IP attempt set adr_bus with unassigned adr")
@@ -100,7 +100,7 @@ class instruction_pointer:
         if self.eip_b[0]:
             self.adr_bus[0] = self.adr[0]
             self.data_bus[0] = self.adr[0] & 0xFF00
-            
+
         self.prevclk[0] = self.clk[0]
 
 class address_buffer:
@@ -141,7 +141,7 @@ class address_buffer:
                 if self.data_bus[0] == 'x':
                     print("WARNING: Adress Buffer attempt write to memory with unassigned data_bus")
                 self.memory[self.adr[0]] = self.data_bus[0]
-                print("Memory write - " + str(self.adr[0]) + ": " + str(self.memory[self.adr[0]]))
+                #print("Memory write - " + str(self.adr[0]) + ": " + str(self.memory[self.adr[0]]))
         self.prevclk[0] = self.clk[0]
         # always @ *
         if self.ce[0]:
@@ -317,7 +317,7 @@ class arithmetic_logic_unit:
         if self.sel[0] == 0xC:
             # NOT B
             self.data[0] = (~self.alu_in_b[0]) & 0xFF
-            
+
         if self.ealu[0]:
             self.data_bus[0] = self.data[0]
             #print(self.data_bus[0])
@@ -540,12 +540,12 @@ class instruction_register_control:
         return (self.io or
                 (self.add and self.immedb) or
                 (self.sub and self.immedb) or
-                (self.log and self.inca) or  
+                (self.log and self.inca) or
                 (self.log and self.incb) or
                 (self.deca and self.log) or
                 (self.decb and self.log) or
                 (self.log and self.deca) or
-                (self.mov and self.swp) or     
+                (self.mov and self.swp) or
                 self.halt or
                 (self.log and self.shl) or
                 (self.log and self.shr) or
@@ -647,7 +647,7 @@ class instruction_register_control:
                         self.t = 3
                     else:
                         #Fetch third operand
-                        self.t = 0    
+                        self.t = 0
 
             # Second Operand Fetch
             elif self.tf:
@@ -815,7 +815,7 @@ class instruction_register_control:
                         elif self.t == 4:
                             self.ealu[0] = False
                             self.lacc[0] = False
-                            self.treset = True                            
+                            self.treset = True
 
                     elif self.sub and self.immeda:
                         # SUB Immediate
@@ -1167,8 +1167,8 @@ class instruction_register_control:
                             print("Clock cycles: " + str(totalCycles))
                             print("B REG: " + str(format(buff.data[0], '#x')))
 
+                    # CALL Function
                     elif self.jmp and self.stora:
-                        # CALL
                         if self.t == 3:
                             ## Load stack pointer address into address register
                             self.t = 4
@@ -1279,19 +1279,132 @@ class instruction_register_control:
                             self.treset = True
                             self.lip[0] = False
                             self.et[0] = False
-                            
-                            
-                            
-                            
-                            
-                    
-                
+
+                    # RETURN from Function
+                elif self.jmp and self.storb:
+                    #TODO: Finish this
+                        if self.t == 3:
+                            ## Load base pointer address into address register
+                            self.t = 4
+                            self.ladd[0] = True
+                            self.lacc[0] = True
+                            self.ebp[0] = True
+                        elif self.t == 4:
+                            # Load high byte of base pointer into B
+                            self.t = 5
+                            self.ladd[0] = False
+                            self.lacc[0] = False
+                            self.esp[0] = False
+                            self.esp_b[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 5:
+                            # Write lower byte of IP to stack
+                            self.t = 6
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.we[0] = True
+                            self.eip[0] = True
+                        elif self.t == 6:
+                            # Increment lower byte of stack pointer in A
+                            self.t = 7
+                            self.we[0] = False
+                            self.eip[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 7:
+                            # Increment upper byte of stack pointer in B if carry
+                            self.t = 8
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 6
+                        elif self.t == 8:
+                            # Load new SP into address register
+                            self.t = 9
+                            self.lbuff[0] = False
+                            self.ealu[0] = False
+                            self.lsp2[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+                        elif self.t == 9:
+                            # Write upper byte of IP to stack
+                            self.t = 10
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.we[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 10:
+                            # Increment lower byte of stack pointer in A
+                            self.t = 11
+                            self.we[0] = False
+                            self.eip_b[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 11:
+                            # Increment upper byte of stack pointer in B if carry
+                            self.t = 12
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 6
+                        elif self.t == 12:
+                            # Load new SP into address register
+                            self.t = 13
+                            self.lbuff[0] = False
+                            self.ealu[0] = False
+                            self.lsp2[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+                        elif self.t == 13:
+                            # Save incremented stack pointer lower byte
+                            self.t = 14
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.lsp1[0] = True
+                            self.eacc[0] = True
+                        elif self.t == 14:
+                            # Save incremented stack pointer upper byte
+                            self.t = 15
+                            self.lsp1[0] = False
+                            self.eacc[0] = False
+                            self.lsp2[0] = True
+                            self.ebuff[0] = True
+                        elif self.t == 15:
+                            # Set IP to be call address
+                            self.t = 16
+                            self.lsp2[0] = False
+                            self.ebuff[0] = False
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 16:
+                            # Call finished
+                            self.treset = True
+                            self.lip[0] = False
+                            self.et[0] = False
+
+
+
+
+
+
         self.prevclk[0] = self.clk[0]
-        
+
         # always @ *
         #self.SetOpcodes()
-        
-        
+
+
 ip = instruction_pointer(count, lip, lip1, lip2, clk, eip, eip_b, reset, adr_bus, data_bus)
 ab = address_buffer(ladd, clk, we, ce, adr_bus, data_bus, reset)
 tr = temporary_register(lt1, lt2, lta, clk, et, et_b, data_bus, adr_bus);
@@ -1349,12 +1462,12 @@ def Dump_Memory():
             file.write(f"{i:#0{numZeros}x}" + ": ")
             for j in range(16):
                 file.write(f"{ab.memory[i+j]:02x}" + " ")
-            
+
             file.write("\n")
             i += 16
-        
-    
-    
+
+
+
 def TestBench1():
     Toggle_Reset()
     count[0] = True
@@ -1383,8 +1496,8 @@ def TestBench2():
     while (totalCycles < 10000) and not systemHalt:
         totalCycles += 1
         Toggle_Clk()
-        
+
     Print_Final_Dump()
     Dump_Memory()
-    
+
 TestBench2()
