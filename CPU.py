@@ -145,10 +145,10 @@ class address_buffer:
         self.prevclk[0] = self.clk[0]
         # always @ *
         if self.ce[0]:
+            #print("ADR Buff out adr: " + hex(self.adr[0]))
+            #print("ADR Buff out data: " + hex(self.memory[self.adr[0]]))
             self.data_bus[0] = self.memory[self.adr[0]]
-            #print("ADR Buff adress: " + str(self.adr[0]))
-            #print("ADR Buff Out: " + str(self.memory[self.adr[0]]))
-            #print()
+
 
 
 class ab_register:
@@ -327,9 +327,10 @@ class arithmetic_logic_unit:
             self.sf[0] = self.data[0] < 0
 
 class instruction_register_control:
-    def __init__(self, clk, data_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of):
+    def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of):
         self.clk = clk
         self.data_bus = data_bus
+        self.adr_bus = adr_bus
         self.reset = reset
         self.go = go
         self.eip = eip
@@ -554,7 +555,8 @@ class instruction_register_control:
                 (self.log and self.immeda) or
                 (self.log and self.immedb) or
                 (self.io and self.mema) or
-                (self.io and self.memb))
+                (self.io and self.memb) or
+                (self.jmp and self.storb))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -1351,6 +1353,173 @@ class instruction_register_control:
                             self.treset = True
 
 
+                        # Return from Function
+                    elif self.jmp and self.storb:
+                        if self.t == 3:
+                            ## Load low byte of stack pointer into A
+                            self.t = 4
+                            self.lacc[0] = True
+                            self.esp[0] = True
+                        elif self.t == 4:
+                            # Load high byte of stack pointer into B
+                            self.t = 5
+                            self.lacc[0] = False
+                            self.esp[0] = False
+                            self.esp_b[0] = True
+                            self.lbuff[0] = True
+
+                        elif self.t == 5:
+                            # Load SP into address register
+                            self.t = 6
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+
+                        elif self.t == 6:
+                            # Load upper byte of BP from stack
+                            self.t = 7
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.ce[0] = True
+                            self.lbp2[0] = True
+                            #print ("SP into ADR: " + hex(self.adr_bus[0]))
+
+                        elif self.t == 7:
+                            # Decrement lower byte of stack pointer in A
+                            self.t = 8
+                            self.ce[0] = False
+                            self.lbp2[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 5
+                        elif self.t == 8:
+                            # Decrement upper byte of stack pointer in B if carry
+                            self.t = 9
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 7
+
+                        elif self.t == 9:
+                            # Load SP into address register
+                            self.t = 10
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+                        elif self.t == 10:
+                            # Load lower byte of BP from stack
+                            self.t = 11
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.ce[0] = True
+                            self.lbp1[0] = True
+
+                        elif self.t == 11:
+                            # Decrement lower byte of stack pointer in A
+                            self.t = 12
+                            self.ce[0] = False
+                            self.lbp1[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 5
+                        elif self.t == 12:
+                            # Decrement upper byte of stack pointer in B if carry
+                            self.t = 13
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 7
+
+                        elif self.t == 13:
+                            # Load SP into address register
+                            self.t = 14
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+                        elif self.t == 14:
+                            # Load upper byte of IP from stack
+                            self.t = 15
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.ce[0] = True
+                            self.lip2[0] = True
+
+                        elif self.t == 15:
+                            # Decrement lower byte of stack pointer in A
+                            self.t = 16
+                            self.ce[0] = False
+                            self.lip2[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 5
+                        elif self.t == 16:
+                            # Decrement upper byte of stack pointer in B if carry
+                            self.t = 17
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 7
+
+                        elif self.t == 17:
+                            # Load SP into address register
+                            self.t = 18
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+                        elif self.t == 18:
+                            # Load lower byte of IP from stack
+                            self.t = 19
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.ce[0] = True
+                            self.lip1[0] = True
+
+                        elif self.t == 19:
+                            # Decrement lower byte of stack pointer in A
+                            self.t = 20
+                            self.ce[0] = False
+                            self.lip1[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 5
+                        elif self.t == 20:
+                            # Decrement upper byte of stack pointer in B if carry
+                            self.t = 21
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 7
+
+                        elif self.t == 21:
+                            # Call finished
+                            self.lbuff[0] = False
+                            self.ealu[0] = False
+                            self.lsp2[0] = False
+                            self.treset = True
 
 
 
@@ -1371,7 +1540,7 @@ bp = temporary_register(lbp1, lbp2, lbpa, clk, ebp, ebp_b, data_bus, adr_bus)
 alu = arithmetic_logic_unit(clk, data_bus, acc_alu_out, buff_alu_out, sel, ealu, cf, zf, sf, of)
 acc = ab_register(lacc, eacc, clk, data_bus, acc_alu_out)
 buff = ab_register(lbuff, ebuff, clk, data_bus, buff_alu_out)
-irc = instruction_register_control(clk, data_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of)
+irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of)
 
 sp.adr[0] = STACK_PTR_START
 bp.adr[0] = STACK_PTR_START

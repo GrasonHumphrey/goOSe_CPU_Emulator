@@ -1,0 +1,57 @@
+CALL:
+3 load sp1 into A
+4 load sp2 into B
+
+5 increment A and sp1
+6 increment B and sp2 if needed
+7 load new sp into address reg
+8 save IP1 to SP
+
+9 increment A and sp1
+10 increment B and sp2 if needed
+11 load new sp into address reg
+12 save IP2 to SP
+
+13 increment A and sp1
+14 increment B and sp2 if needed
+15 load new sp into address reg
+16 set BP to SP
+17 save BP1 to SP
+
+18 increment A and sp1
+19 increment B and sp2 if needed
+20 load new sp into address reg
+21 save BP2 to SP
+
+22 set IP to call address
+23 reset
+
+
+RET:
+3 load sp1 into A
+4 load sp2 into B
+
+5 load SP into address reg
+6 load BP2 from SP
+7 decrement A and SP1
+8 decrement B and sp2 if needed
+
+9 load SP into address reg
+10 load BP1 from SP
+11 decrement A and SP1
+12 decrement B and sp2 if needed
+
+13 load SP into address reg
+14 load IP2 from SP
+15 decrement A and SP1
+16 decrement B and sp2 if needed
+
+17 load SP into address reg
+18 load IP1 from SP
+19 decrement A and SP1
+20 decrement B and sp2 if needed
+
+21 reset
+
+
+PEEK

@@ -1,20 +1,20 @@
 mov ar 1
-mov br 7
-add br
 io ar
-
 call myfunc
-loc myfunc2
-mov ar 1
-mov br 1
-add br
+mov ar 5
 io ar
 halt
+
+loc myfunc2
+mov ar 3
+io ar
+ret
 
 
 loc myfunc
 mov ar 2
-mov br 3
-add br
 io ar
 call myfunc2
+mov ar 4
+io ar
+ret

@@ -135,7 +135,7 @@ for line in range(len(codeParts)):
 
             for op in range(len(lineParts)):
                 ops.append(lineParts[op])
-                        
+
             if (ops[0] == "loc"):
                 expectArgs = 2
                 if (not (ops[1] in locVars[0])):
@@ -161,9 +161,9 @@ for line in range(len(codeParts)):
                             defVars[1].append(str(ops[2]))
                             totalVars.append(ops[1])
                         else:
-                            throwError("Invalid character '*' in DEF variable: " + ops[1], line) 
+                            throwError("Invalid character '*' in DEF variable: " + ops[1], line)
                     else:
-                         throwError("Invalid character '.' in DEF variable: " + ops[1], line)   
+                         throwError("Invalid character '.' in DEF variable: " + ops[1], line)
                 else:
                     throwError("More than one DEF variable given same name: " + ops[1], line)
 
@@ -180,7 +180,7 @@ for line in range(len(codeParts)):
                 customPush = PUSH.replace("sp1", ops[1]).replace("sp2", ops[2]).replace("val", ops[3])
                 code = code.lower().replace(codeParts[line], customPush, 1)
                 print(code)
-    
+
 
 #codeParts = code.lower().split("\n")[1:-1]
 codeParts = code.lower().split("\n")
@@ -195,7 +195,7 @@ for line in range(len(codeParts)):
             #    throwError("Incorrect # of line arguments (Max 3 arguments, detected: " + str(len(lineParts)) + ")", line)
             for op in range(len(lineParts)):
                 ops.append(lineParts[op])
-                
+
             cleanOp = ""
             opcodeNum = ""
 
@@ -225,19 +225,19 @@ for line in range(len(codeParts)):
                     else:
                         # MOV B, [<immed>]
                         cmdBytes.append("04")
-                        cmdBytes.append(clean_operand(ops[2], line))            
+                        cmdBytes.append(clean_operand(ops[2], line))
                 elif (ops[2] == "ar"):
                     # MOV [<mem>], A
                     if (ops[1][0] != "*"):
                         throwError("Must specify a memory address for MEM store operation", line)
                     cmdBytes.append("05")
-                    cmdBytes.append(clean_operand(ops[1], line)) 
+                    cmdBytes.append(clean_operand(ops[1], line))
                 elif (ops[2] == "br"):
                     # MOV [<mem>], B
                     if (ops[1][0] != "*"):
                         throwError("Must specify a memory address for MEM store operation", line)
                     cmdBytes.append("06")
-                    cmdBytes.append(clean_operand(ops[1], line)) 
+                    cmdBytes.append(clean_operand(ops[1], line))
                 else:
                     throwError("Invalid MOV (invalid register)", line)
 
@@ -249,7 +249,7 @@ for line in range(len(codeParts)):
                 elif (ops[1][0] == "*"):
                     # ADD [<mem>]
                     cmdBytes.append("11")
-                    cmdBytes.append(clean_operand(ops[1], line)) 
+                    cmdBytes.append(clean_operand(ops[1], line))
                 else:
                     # ADD <immed>
                     cmdBytes.append("13")
@@ -447,7 +447,7 @@ for line in range(len(codeParts)):
                     # AND B
                     cmdBytes.append("21")
                 elif (ops[1][0] == "*"):
-                    throwError("Cannot AND with memory location", line) 
+                    throwError("Cannot AND with memory location", line)
                 else:
                     # ADD <immed>
                     cmdBytes.append("25")
@@ -460,7 +460,7 @@ for line in range(len(codeParts)):
                     # OR B
                     cmdBytes.append("22")
                 elif (ops[1][0] == "*"):
-                    throwError("Cannot OR with memory location", line) 
+                    throwError("Cannot OR with memory location", line)
                 else:
                     # OR <immed>
                     cmdBytes.append("26")
@@ -472,7 +472,7 @@ for line in range(len(codeParts)):
                     # XOR B
                     cmdBytes.append("23")
                 elif (ops[1][0] == "*"):
-                    throwError("Cannot XOR with memory location", line) 
+                    throwError("Cannot XOR with memory location", line)
                 else:
                     # XOR <immed>
                     cmdBytes.append("27")
@@ -482,7 +482,7 @@ for line in range(len(codeParts)):
                 # Bitwise NOT
                 expectArgs = 1
                 cmdBytes.append("24")
-                
+
             elif (ops[0] == "dec"):
                 expectArgs = 2
                 if(ops[1] == "ar"):
@@ -525,7 +525,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "halt"):
                 expectArgs = 1
                 cmdBytes.append("ff")
-                        
+
             elif (ops[0] == "io"):
                 # IO operation
                 expectArgs = 2
@@ -539,13 +539,18 @@ for line in range(len(codeParts)):
                     throwError("Invalid IO (invalid register)", line)
 
             elif (ops[0] == "call"):
-                # Unconditional jump
+                # Call function
                 expectArgs = 2
                 if ((ops[1][0] == "*") or (ops[1] in totalVars)):
                     cmdBytes.append("85")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
                     throwError("Can only call to memory location", line)
+
+            elif (ops[0] == "ret"):
+                # Return from function
+                expectArgs = 1
+                cmdBytes.append("86")
 
             elif (ops[0] == "set"):
                 # Set a memory location directly
@@ -589,7 +594,7 @@ for line in range(len(codeParts)):
                 #    locVars[1].append(str(ops[2]))
                 #else:
                 #    throwError("More than one variable given same name: " + ops[1], line)
-                    
+
             else:
                 throwError("Invalid ops[0]: " + ops[0], line)
 
@@ -600,12 +605,12 @@ for line in range(len(codeParts)):
                 if (len(lineParts) != expectArgs):
                     throwError("Wrong number of operands for ops[0]: " + ops[0] + ". Got: " + str(len(lineParts)-1) + ", expected: " + str(expectArgs-1), line)
 
-                for i in range(len(cmdBytes)):        
+                for i in range(len(cmdBytes)):
                     currentCmd = cmdBytes.pop(0)
                     if (not currentCmd in locVars[0]):
                         if len(currentCmd) > 2:
                             if (cmdNum in setVars):
-                                throwError("Compiled code overwrote SET on cmdNum: " + str(cmdNum), line)  
+                                throwError("Compiled code overwrote SET on cmdNum: " + str(cmdNum), line)
                             output += gen_cmd_file(currentCmd[2:4], cmdNum)
                             cmdNum += 1
                         if (cmdNum in setVars):
@@ -617,13 +622,13 @@ for line in range(len(codeParts)):
                         cmdNum += 1
                         output += gen_cmd_file(currentCmd + ".2", cmdNum)
                         cmdNum += 1
-                         
+
 
 for locVar in range(len(locVars[0])):
     output = output.replace(locVars[0][locVar] + ".1", locVars[1][locVar][2:4])
     output = output.replace(locVars[0][locVar] + ".2", locVars[1][locVar][0:2])
-    
-    
+
+
 
 print
 print("Compilation success.")
