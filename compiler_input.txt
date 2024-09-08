@@ -4,6 +4,7 @@ add br
 io ar
 
 call myfunc
+loc myfunc2
 mov ar 1
 mov br 1
 add br
@@ -16,4 +17,4 @@ mov ar 2
 mov br 3
 add br
 io ar
-halt
+call myfunc2
