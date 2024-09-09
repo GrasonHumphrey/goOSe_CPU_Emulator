@@ -54,6 +54,7 @@ cf = [False]
 zf = [False]
 sf = [False]
 of = [False]
+xf = [False]
 ealu = [False]
 
 totalCycles = 0
@@ -224,7 +225,7 @@ class temporary_register:
             #print("TR Data Out: " + hex((self.adr[0] & 0xFF00) >> 8))
 
 class arithmetic_logic_unit:
-    def __init__(self, clk, data_bus, alu_in_a, alu_in_b, sel, ealu, cf, zf, sf, of):
+    def __init__(self, clk, data_bus, alu_in_a, alu_in_b, sel, ealu, cf, zf, sf, of, xf):
         self.clk = clk
         self.data_bus = data_bus
         self.alu_in_a = alu_in_a
@@ -235,6 +236,7 @@ class arithmetic_logic_unit:
         self.zf = zf
         self.sf = sf
         self.of = of
+        self.xf = xf
         self.data = [0]
 
     def Update(self):
@@ -244,11 +246,13 @@ class arithmetic_logic_unit:
             # ADD
             result = (self.alu_in_a[0] + self.alu_in_b[0])
             self.data[0] = result & 0xFF
+            
             #print(self.alu_in_a[0])
             #print(self.alu_in_b[0])
             #print(self.data[0])
             #print()
             if self.ealu[0]:
+                #print("Add result: " + hex(self.data[0]))
                 # Calculate carry and overflow flags
                 # Set overflow flag if result is incorrect for signed arithmetic
                 #self.of[0] = (~(self.data[0]&0x80) and (self.alu_in_a[0]&0x80) and (self.alu_in_b[0]&0x80)) or ((self.data[0]&0x80) and ~(self.alu_in_a[0]&0x80) and ~(self.alu_in_b[0]&0x80))
@@ -256,10 +260,11 @@ class arithmetic_logic_unit:
                 # Set carry flag if result is incorrect for unsigned arithmetic
                 #self.cf[0] = ((self.alu_in_a[0]&0x80) or (self.alu_in_b[0]&0x80)) and ~(self.data[0]&0x80)
                 self.cf[0] = result > 0xFF
-                if (self.cf[0]):
+                # XF for carry needed with unsigned A and signed B
+                self.xf[0] = not ((self.alu_in_b[0] <= 0x7F and result <= 0xFF) or (self.alu_in_b[0] > 0x7F and result > 0xFF))
+                if self.xf[0]:
                     overrideSF = True
                     self.sf[0] = self.alu_in_b[0] > 0x7F
-
 
         if self.sel[0] == 0x1:
             # SUBTRACT
@@ -272,7 +277,9 @@ class arithmetic_logic_unit:
                 self.of[0] = (result > 0x7F) or (result < -0x7F)
                 # Set carry flag if result is incorrect for unsigned arithmetic
                 self.cf[0] = result < 0
-                if (self.cf[0]):
+                # XF for carry needed with unsigned A and signed B
+                self.xf[0] = not ((self.alu_in_b[0] <= 0x7F and result <= 0xFF) or (self.alu_in_b[0] > 0x7F and result > 0xFF))
+                if self.xf[0]:
                     overrideSF = True
                     self.sf[0] = self.alu_in_b[0] > 0x7F
         if self.sel[0] == 0x2:
@@ -344,7 +351,7 @@ class arithmetic_logic_unit:
                 self.sf[0] = self.data[0] & 0xFF > 0x7F
 
 class instruction_register_control:
-    def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of):
+    def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf):
         self.clk = clk
         self.data_bus = data_bus
         self.adr_bus = adr_bus
@@ -389,6 +396,7 @@ class instruction_register_control:
         self.zf = zf
         self.sf = sf
         self.of = of
+        self.xf = xf
         self.linst = False
         self.data = [0]
         self.mema = False
@@ -1660,7 +1668,9 @@ class instruction_register_control:
                             self.t = 10
                             self.ebp_b[0] = False
                             self.lacc[0] = False
-                            if self.cf[0]:
+                            #print("BP_B: " + hex(self.data_bus[0]))
+                            if self.xf[0]:
+                                #print("Carry")
                                 self.lacc[0] = True
                                 self.ealu[0] = True
                                 if self.sf[0]:
@@ -1679,6 +1689,7 @@ class instruction_register_control:
                         elif self.t == 11:
                             # Move temp into address reg
                             self.t = 12
+                            #print("ACC: " + hex(self.data_bus[0]))
                             self.eacc[0] = False
                             self.lt2[0] = False
                             self.et[0] = True
@@ -1694,7 +1705,7 @@ class instruction_register_control:
                         elif self.t == 13:
                             # Restore B
                             self.t = 14
-                            self.err[0] = False
+                            self.ce[0] = False
                             self.lacc[0] = False
                             self.err[0] = True
                             self.lbuff[0] = True
@@ -1717,10 +1728,10 @@ tr = temporary_register(lt1, lt2, lta, clk, et, et_b, data_bus, adr_bus)
 rr = temporary_register(lrr1, lrr2, lrra, clk, err, err_b, data_bus, adr_bus)
 sp = temporary_register(lsp1, lsp2, lspa, clk, esp, esp_b, data_bus, adr_bus)
 bp = temporary_register(lbp1, lbp2, lbpa, clk, ebp, ebp_b, data_bus, adr_bus)
-alu = arithmetic_logic_unit(clk, data_bus, acc_alu_out, buff_alu_out, sel, ealu, cf, zf, sf, of)
+alu = arithmetic_logic_unit(clk, data_bus, acc_alu_out, buff_alu_out, sel, ealu, cf, zf, sf, of, xf)
 acc = ab_register(lacc, eacc, clk, data_bus, acc_alu_out)
 buff = ab_register(lbuff, ebuff, clk, data_bus, buff_alu_out)
-irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of)
+irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf)
 
 sp.adr[0] = STACK_PTR_START
 bp.adr[0] = STACK_PTR_START

@@ -1,6 +1,9 @@
 call f1
 
 loc f1
-peek fd
+mov br A
+io br
+peek 94
 io ar
+io br
 halt
