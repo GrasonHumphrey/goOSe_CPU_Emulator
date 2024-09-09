@@ -55,3 +55,12 @@ RET:
 
 
 PEEK
+3 load bp1 into A
+4 load offset into B
+5 add A and B
+6 move result to temp1
+7 load bp2 into A
+8 increment or decrement A if needed
+9 move result to temp2
+10 load temp into address reg
+11 move output into A

@@ -324,7 +324,7 @@ class arithmetic_logic_unit:
             # Zero flag is set if result is zero
             self.zf[0] = self.data[0] == 0
             # Sign flag is set if result is less than zero
-            self.sf[0] = self.data[0] < 0
+            self.sf[0] = self.data[0] & 0xFF > 0x7F
 
 class instruction_register_control:
     def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of):
@@ -575,7 +575,8 @@ class instruction_register_control:
                 (self.jnc and self.immedb) or   # Jump to offset if overflow did not occur
                 (self.log and self.stora) or
                 (self.log and self.storb) or
-                (self.log and self.swp))
+                (self.log and self.swp) or
+                (self.jmp and self.shl))
 
     def Push(self, initTime):
         print("push")
@@ -1353,7 +1354,7 @@ class instruction_register_control:
                             self.treset = True
 
 
-                        # Return from Function
+                    # Return from Function
                     elif self.jmp and self.storb:
                         if self.t == 3:
                             ## Load low byte of stack pointer into A
@@ -1521,9 +1522,45 @@ class instruction_register_control:
                             self.lsp2[0] = False
                             self.treset = True
 
-
-
-
+                    # Peek at BP offset
+                    elif self.jmp and self.shl:
+                        if self.t == 3:
+                            # Load low byte of base pointer into A
+                            self.t = 4
+                            self.lacc[0] = True
+                            self.ebp[0] = True
+                        elif self.t == 4:
+                            # Load offset into B
+                            self.t = 5
+                            self.lacc[0] = False
+                            self.ebp[0] = False
+                            self.lbuff[0] = True
+                            self.et[0] = True
+                        elif self.t == 5:
+                            # Add A and B
+                            self.t = 6
+                            self.lbuff[0] = False
+                            self.et[0] = False
+                            self.lacc[0] = True
+                            self.ealu[0] = True
+                            self.sel = 0
+                        elif self.t == 6:
+                            # Move result to temp1
+                            self.t = 7
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 7:
+                            # Load BP2 into A
+                            self.t = 8
+                            self.eacc[0] = False
+                            self.lt1[0] = False
+                            self.ebp_b[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 8:
+                            # Decide if upper byte of BP needs to be incremented
+                            self.t = 9
 
 
         self.prevclk[0] = self.clk[0]
