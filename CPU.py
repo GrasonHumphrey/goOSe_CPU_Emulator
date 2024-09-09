@@ -611,7 +611,8 @@ class instruction_register_control:
                 (self.log and self.stora) or
                 (self.log and self.storb) or
                 (self.log and self.swp) or
-                (self.jmp and self.shl))
+                (self.jmp and self.shl) or
+                (self.jmp and self.shr))
 
     def Push(self, initTime):
         print("push")
@@ -629,6 +630,7 @@ class instruction_register_control:
                 self.SetOpcodes()
             if self.reset[0] or self.treset or self.halt:
                 # Reset IRC
+                #print("IRC reset")
                 self.ResetOutputs()
                 self.ResetOpcodes()
                 self.ResetState()
@@ -1714,6 +1716,113 @@ class instruction_register_control:
                             self.lbuff[0] = False
                             self.err[0] = False
                             self.treset = True
+
+                    # Poke A to BP offset
+                    elif self.jmp and self.shr:
+                        if self.t == 3:
+                         # Save A to RR2
+                            self.t = 4
+                            self.eacc[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 4:
+                         # Save B to RR1
+                            #print("Saved A: " + hex(self.data_bus[0]))
+                            self.t = 5
+                            self.eacc[0] = False
+                            self.lrr2[0] = False
+                            self.lrr1[0] = True
+                            self.ebuff[0] = True
+                        elif self.t == 5:
+                            # Load low byte of base pointer into A
+                            self.t = 6
+                            self.lrr1[0] = False
+                            self.ebuff[0] = False
+                            self.lacc[0] = True
+                            self.ebp[0] = True
+                        elif self.t == 6:
+                            # Load offset into B
+                            self.t = 7
+                            self.lacc[0] = False
+                            self.ebp[0] = False
+                            self.lbuff[0] = True
+                            self.et[0] = True
+                        elif self.t == 7:
+                            # Add A and B
+                            self.t = 8
+                            self.lbuff[0] = False
+                            self.et[0] = False
+                            self.lacc[0] = True
+                            self.ealu[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 8:
+                            # Move result to temp1
+                            self.t = 9
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 9:
+                            # Load BP2 into A
+                            self.t = 10
+                            self.eacc[0] = False
+                            self.lt1[0] = False
+                            self.ebp_b[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 10:
+                            # Decide if upper byte of BP needs to be incremented
+                            self.t = 11
+                            self.ebp_b[0] = False
+                            self.lacc[0] = False
+                            #print("BP_B: " + hex(self.data_bus[0]))
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lacc[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 11:
+                            # Move result to temp2
+                            self.t = 12
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move temp into address reg
+                            self.t = 13
+                            #print("ACC: " + hex(self.data_bus[0]))
+                            self.eacc[0] = False
+                            self.lt2[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 13:
+                            # Write saved value of A and restore A
+                            self.t = 14
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.err_b[0] = True
+                            self.we[0] = True
+                            self.lacc[0] = True
+
+                        elif self.t == 14:
+                            # Restore B
+                            self.t = 15
+                            #print("Saved A: " + hex(self.data_bus[0]))
+                            self.err_b[0] = False
+                            self.we[0] = False
+                            self.lacc[0] = False
+                            self.err[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 15:
+                            # Call finished
+                            self.lbuff[0] = False
+                            self.err[0] = False
+                            self.treset = True
+                            #print("finish poke")
 
 
         self.prevclk[0] = self.clk[0]

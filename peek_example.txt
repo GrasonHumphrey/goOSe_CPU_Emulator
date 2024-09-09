@@ -1,0 +1,9 @@
+call f1
+
+loc f1
+mov br A
+io br
+peek 94
+io ar
+io br
+halt
