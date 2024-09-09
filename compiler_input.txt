@@ -1,20 +1,13 @@
-mov ar 1
-io ar
-call myfunc
-mov ar 5
-io ar
+call f1
+
+loc f1
+call f2
+
+loc f2
+call f3
+
+loc f3
+call f4
+
+loc f4
 halt
-
-loc myfunc2
-mov ar 3
-io ar
-ret
-
-
-loc myfunc
-mov ar 2
-io ar
-call myfunc2
-mov ar 4
-io ar
-ret

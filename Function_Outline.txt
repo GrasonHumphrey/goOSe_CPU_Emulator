@@ -33,30 +33,35 @@ CALL:
 
 
 RET:
-3 load sp1 into A
-4 load sp2 into B
-
-5 load SP into address reg
-6 load BP2 from SP
-7 decrement A and SP1
+3 load SP into address reg
+4 load BP2 from SP
+5 load sp1 into B
+6 decrement B and SP1
+7 load sp2 into B
 8 decrement B and sp2 if needed
 
 9 load SP into address reg
 10 load BP1 from SP
-11 decrement A and SP1
-12 decrement B and sp2 if needed
+11 load sp1 into B
+12 decrement B and SP1
+13 load sp2 into B
+14 decrement B and sp2 if needed
 
-13 load SP into address reg
-14 load IP2 from SP
-15 decrement A and SP1
-16 decrement B and sp2 if needed
-
-17 load SP into address reg
-18 load IP1 from SP
-19 decrement A and SP1
+15 load SP into address reg
+16 load IP2 from SP
+17 load sp1 into B
+18 decrement B and SP1
+19 load sp2 into B
 20 decrement B and sp2 if needed
 
-21 reset
+21 load SP into address reg
+22 load IP1 from SP
+23 load sp1 into B
+24 decrement B and SP1
+25 load sp2 into B
+26 decrement B and sp2 if needed
+
+27 reset
 
 
 PEEK
