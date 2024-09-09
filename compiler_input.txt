@@ -1,13 +1,6 @@
 call f1
 
 loc f1
-call f2
-
-loc f2
-call f3
-
-loc f3
-call f4
-
-loc f4
+peek fd
+io ar
 halt

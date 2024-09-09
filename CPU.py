@@ -239,6 +239,7 @@ class arithmetic_logic_unit:
 
     def Update(self):
         # always @ *
+        overrideSF = False
         if self.sel[0] == 0x0:
             # ADD
             result = (self.alu_in_a[0] + self.alu_in_b[0])
@@ -255,6 +256,11 @@ class arithmetic_logic_unit:
                 # Set carry flag if result is incorrect for unsigned arithmetic
                 #self.cf[0] = ((self.alu_in_a[0]&0x80) or (self.alu_in_b[0]&0x80)) and ~(self.data[0]&0x80)
                 self.cf[0] = result > 0xFF
+                if (self.cf[0]):
+                    overrideSF = True
+                    self.sf[0] = self.alu_in_b[0] > 0x7F
+
+
         if self.sel[0] == 0x1:
             # SUBTRACT
             result = (self.alu_in_a[0] - self.alu_in_b[0])
@@ -266,6 +272,9 @@ class arithmetic_logic_unit:
                 self.of[0] = (result > 0x7F) or (result < -0x7F)
                 # Set carry flag if result is incorrect for unsigned arithmetic
                 self.cf[0] = result < 0
+                if (self.cf[0]):
+                    overrideSF = True
+                    self.sf[0] = self.alu_in_b[0] > 0x7F
         if self.sel[0] == 0x2:
             # Bit shift left
             #result = (self.alu_in_a[0] << self.alu_in_b[0])
@@ -331,7 +340,8 @@ class arithmetic_logic_unit:
             # Zero flag is set if result is zero
             self.zf[0] = self.data[0] == 0
             # Sign flag is set if result is less than zero
-            self.sf[0] = self.data[0] & 0xFF > 0x7F
+            if not overrideSF:
+                self.sf[0] = self.data[0] & 0xFF > 0x7F
 
 class instruction_register_control:
     def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of):
@@ -1605,42 +1615,94 @@ class instruction_register_control:
                     # Peek at BP offset
                     elif self.jmp and self.shl:
                         if self.t == 3:
-                            # Load low byte of base pointer into A
+                         # Save B
                             self.t = 4
+                            self.lrr1[0] = True
+                            self.ebuff[0] = True
+                        elif self.t == 4:
+                            # Load low byte of base pointer into A
+                            self.t = 5
+                            self.lrr1[0] = False
+                            self.ebuff[0] = False
                             self.lacc[0] = True
                             self.ebp[0] = True
-                        elif self.t == 4:
+                        elif self.t == 5:
                             # Load offset into B
-                            self.t = 5
+                            self.t = 6
                             self.lacc[0] = False
                             self.ebp[0] = False
                             self.lbuff[0] = True
                             self.et[0] = True
-                        elif self.t == 5:
+                        elif self.t == 6:
                             # Add A and B
-                            self.t = 6
+                            self.t = 7
                             self.lbuff[0] = False
                             self.et[0] = False
                             self.lacc[0] = True
                             self.ealu[0] = True
-                            self.sel = 0
-                        elif self.t == 6:
+                            self.sel[0] = 0
+                        elif self.t == 7:
                             # Move result to temp1
-                            self.t = 7
+                            self.t = 8
                             self.lacc[0] = False
                             self.ealu[0] = False
                             self.eacc[0] = True
                             self.lt1[0] = True
-                        elif self.t == 7:
+                        elif self.t == 8:
                             # Load BP2 into A
-                            self.t = 8
+                            self.t = 9
                             self.eacc[0] = False
                             self.lt1[0] = False
                             self.ebp_b[0] = True
                             self.lacc[0] = True
-                        elif self.t == 8:
+                        elif self.t == 9:
                             # Decide if upper byte of BP needs to be incremented
-                            self.t = 9
+                            self.t = 10
+                            self.ebp_b[0] = False
+                            self.lacc[0] = False
+                            if self.cf[0]:
+                                self.lacc[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Move result to temp2
+                            self.t = 11
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 11:
+                            # Move temp into address reg
+                            self.t = 12
+                            self.eacc[0] = False
+                            self.lt2[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 12:
+                            # Move output into A
+                            self.t = 13
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.lacc[0] = True
+                            self.ce[0] = True
+
+                        elif self.t == 13:
+                            # Restore B
+                            self.t = 14
+                            self.err[0] = False
+                            self.lacc[0] = False
+                            self.err[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 14:
+                            # Call finished
+                            self.lbuff[0] = False
+                            self.err[0] = False
+                            self.treset = True
 
 
         self.prevclk[0] = self.clk[0]

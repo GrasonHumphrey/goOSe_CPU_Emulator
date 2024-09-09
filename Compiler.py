@@ -552,6 +552,15 @@ for line in range(len(codeParts)):
                 expectArgs = 1
                 cmdBytes.append("86")
 
+            elif (ops[0] == "peek"):
+                # Peek at offset from BP
+                expectArgs = 2
+                if (ops[1][0] == "*"):
+                    throwError("Can only peek at offset from BP", line)
+                else:
+                    cmdBytes.append("88")
+                    cmdBytes.append(clean_operand(ops[1], line))
+
             elif (ops[0] == "set"):
                 # Set a memory location directly
                 expectArgs = 3
