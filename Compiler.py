@@ -26,52 +26,6 @@ if __name__ == "__main__":
 ## Python line 21
 #"""
 
-# POP(*sp1, *sp2, *ret)
-POP = """
-# Save A and B to temp regs
-MOV tempa A
-MOV tempb B
-# Load sp values
-MOV A sp1
-MOV B sp2
-# Get value at sp and save to ret
-LDAB
-MOV ret A
-# Decrement sp1
-MOV A sp1
-DEC A
-MOV sp1 A
-JNOFO 7
-# Decrement sp2 if needed
-MOV B sp2
-DEC B
-MOV sp2 B
-# Reload A and B from temp regs
-MOV A tempa
-MOV B tempb
-"""
-
-# PUSH (*sp1, *sp2, *val)
-PUSH = """
-# Save A and B to temp regs
-MOV tempa A
-MOV tempb B
-# Increment sp1
-MOV A sp1
-MOV B sp2
-INC A
-MOV sp1 A
-JNOFO 4
-# Increment sp2 if needed
-INC B
-MOV sp2 B
-# Save value to given sp
-STOAB val
-# Reload A and B from temp regs
-MOV A tempa
-MOV B tempb
-"""
-
 
 
 
@@ -167,19 +121,6 @@ for line in range(len(codeParts)):
                 else:
                     throwError("More than one DEF variable given same name: " + ops[1], line)
 
-            elif (ops[0] == "pop"):
-                if (len(ops) != 4):
-                    throwError("POP needs 3 arguments, given: " + str(len(ops)-1), line)
-                customPop = POP.replace("sp1", ops[1]).replace("sp2", ops[2]).replace("ret", ops[3])
-                code = code.lower().replace(codeParts[line], customPop, 1)
-                print(code)
-
-            elif (ops[0] == "push"):
-                if (len(ops) != 4):
-                    throwError("PUSH needs 3 arguments, given: " + str(len(ops)-1), line)
-                customPush = PUSH.replace("sp1", ops[1]).replace("sp2", ops[2]).replace("val", ops[3])
-                code = code.lower().replace(codeParts[line], customPush, 1)
-                print(code)
 
 
 #codeParts = code.lower().split("\n")[1:-1]
@@ -569,6 +510,16 @@ for line in range(len(codeParts)):
                 else:
                     cmdBytes.append("89")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "pop"):
+                # Return from function
+                expectArgs = 1
+                cmdBytes.append("8A")
+
+            elif (ops[0] == "push"):
+                # Return from function
+                expectArgs = 1
+                cmdBytes.append("8B")
 
             elif (ops[0] == "set"):
                 # Set a memory location directly

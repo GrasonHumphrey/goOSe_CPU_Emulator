@@ -61,7 +61,7 @@ totalCycles = 0
 systemHalt = False
 
 MEM_SIZE_BYTES = 0x100
-STACK_PTR_START = 0x6F
+STACK_PTR_START = 0x9F
 
 class instruction_pointer:
     def __init__(self, count, lip, lip1, lip2, clk, eip, eip_b, reset, adr_bus, data_bus):
@@ -591,7 +591,9 @@ class instruction_register_control:
                 (self.log and self.immedb) or
                 (self.io and self.mema) or
                 (self.io and self.memb) or
-                (self.jmp and self.storb))
+                (self.jmp and self.storb) or
+                (self.jmp and self.deca) or 
+                (self.jmp and self.decb))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -1823,6 +1825,161 @@ class instruction_register_control:
                             self.err[0] = False
                             self.treset = True
                             #print("finish poke")
+
+                    # Pop from SP
+                    elif self.jmp and self.deca:
+                        if self.t == 3:
+                         # Save B
+                            self.t = 4
+                            self.lrr1[0] = True
+                            self.ebuff[0] = True
+                        elif self.t == 4:
+                            # Load stack pointer into address reg and A
+                            self.t = 5
+                            self.lrr1[0] = False
+                            self.ebuff[0] = False
+                            self.lacc[0] = True
+                            self.esp[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 5:
+                            # Move output into RR2
+                            self.t = 6
+                            self.lacc[0] = False
+                            self.esp[0] = False
+                            self.ladd[0] = False
+                            self.lrr2[0] = True
+                            self.ce[0] = True
+                        elif self.t == 6:
+                            # Load high byte of stack pointer into B
+                            self.t = 7
+                            self.lrr2[0] = False
+                            self.ce[0] = False
+                            self.esp_b[0] = True
+                            self.lbuff[0] = True
+
+                        elif self.t == 7:
+                            # Decrement lower byte of stack pointer in A
+                            self.t = 8
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 5
+                        elif self.t == 8:
+                            # Decrement upper byte of stack pointer in B if carry
+                            self.t = 9
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 7
+
+                        elif self.t == 9:
+                            # Move saved value from RR2 to A
+                            self.t = 10
+                            self.lbuff[0] = False
+                            self.ealu[0] = False
+                            self.lsp2[0] = False
+                            self.err_b[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 10:
+                            # Restore B
+                            self.t = 11
+                            self.err_b[0] = False
+                            self.lacc[0] = False
+                            self.err[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 11:
+                            # Pop finished
+                            self.lbuff[0] = False
+                            self.err[0] = False
+                            self.treset = True
+
+                    # Push to SP
+                    elif self.jmp and self.decb:
+                        if self.t == 3:
+                         # Save A
+                            self.t = 4
+                            self.lrr1[0] = True
+                            self.eacc[0] = True
+                        elif self.t == 4:
+                         # Save B
+                            self.t = 5
+                            self.lrr1[0] = False
+                            self.eacc[0] = False
+                            self.lrr2[0] = True
+                            self.ebuff[0] = True
+
+                        elif self.t == 5:
+                            # Load stack pointer lower byte into A
+                            self.t = 6
+                            self.lrr2[0] = False
+                            self.ebuff[0] = False
+                            self.lacc[0] = True
+                            self.esp[0] = True
+
+                        elif self.t == 6:
+                            # Load high byte of stack pointer into B
+                            self.t = 7
+                            self.lacc[0] = False
+                            self.esp[0] = False
+                            self.esp_b[0] = True
+                            self.lbuff[0] = True
+
+                        elif self.t == 7:
+                            # Increment lower byte of stack pointer in A
+                            self.t = 8
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 8:
+                            # Increment upper byte of stack pointer in B if carry
+                            self.t = 9
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 6
+
+                        elif self.t == 9:
+                            # Load stack pointer into address register
+                            self.t = 10
+                            self.lbuff[0] = False
+                            self.ealu[0] = False
+                            self.lsp2[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+                        
+                        elif self.t == 10:
+                            # Write saved A in RR1 to SP
+                            self.t = 11
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.err[0] = True
+                            self.we[0] = True
+                        
+                        elif self.t == 11:
+                            # Restore B
+                            self.t = 12
+                            self.err[0] = False
+                            self.we[0] = False
+                            self.err_b[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 12:
+                            # Push finished
+                            self.err_b[0] = False
+                            self.lbuff[0] = False
+                            self.treset = True
 
 
         self.prevclk[0] = self.clk[0]

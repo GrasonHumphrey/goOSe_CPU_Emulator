@@ -1,0 +1,21 @@
+mov ar 8
+mov br b
+push
+swp
+push
+call f1
+pop
+pop
+mov ar 1
+push
+mov ar fe
+push
+call f1
+halt
+
+loc f1
+peek fd
+io ar
+peek fc
+io ar
+ret
