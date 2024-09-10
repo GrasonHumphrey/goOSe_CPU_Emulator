@@ -348,7 +348,7 @@
         <mxCell id="OP_WZOEwzZ8E04Q1PPD2-130" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.001;entryY=0.115;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="OP_WZOEwzZ8E04Q1PPD2-19" target="OP_WZOEwzZ8E04Q1PPD2-15">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="OP_WZOEwzZ8E04Q1PPD2-166" value="Extra Registers&lt;div&gt;(Mirror Temporary Register)&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Stack Pointer (SP)&lt;/div&gt;&lt;div&gt;Base Pointer (BP)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
+        <mxCell id="OP_WZOEwzZ8E04Q1PPD2-166" value="Extra Registers&lt;div&gt;(Mirror Temporary Register)&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Stack Pointer (SP)&lt;/div&gt;&lt;div&gt;Base Pointer (BP)&lt;/div&gt;&lt;div&gt;Restore Register (RR)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="650" y="507" width="193" height="127" as="geometry" />
         </mxCell>
         <mxCell id="OP_WZOEwzZ8E04Q1PPD2-168" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fillColor=#d5e8d4;strokeColor=#82b366;shape=flexArrow;endArrow=none;endFill=0;" edge="1" parent="1" source="OP_WZOEwzZ8E04Q1PPD2-34" target="OP_WZOEwzZ8E04Q1PPD2-166">
