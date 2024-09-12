@@ -498,6 +498,8 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*"):
                     throwError("Can only peek at offset from BP", line)
+                elif (ops[1] == "ar"):
+                    cmdBytes.append("8E")
                 else:
                     cmdBytes.append("88")
                     cmdBytes.append(clean_operand(ops[1], line))
@@ -518,8 +520,16 @@ for line in range(len(codeParts)):
 
             elif (ops[0] == "push"):
                 # Return from function
-                expectArgs = 1
-                cmdBytes.append("8B")
+                expectArgs = 2
+                if (ops[1] == "ar"):
+                    # Push A reg
+                    cmdBytes.append("8B")
+                else:
+                    # Push <immed>
+                    cmdBytes.append("87")
+                    cmdBytes.append(clean_operand(ops[1], line))
+
+                
 
             elif (ops[0] == "set"):
                 # Set a memory location directly

@@ -250,6 +250,7 @@ class temporary_register:
                 if self.data_bus[0] == 'x':
                     print("WARNING: Temp Reg attempt to load with unassigned data bus")
                 self.adr[0] = (int(self.adr[0]) & 0x00FF) | (int(data_bus[0]) << 8)
+                print("TR2 Load: " + hex(self.data_bus[0]))
             if self.lta[0]:
                 if self.adr_bus[0] == 'x':
                     print("WARNING: Temp Reg attempt to load with unassigned adr bus")
@@ -460,6 +461,7 @@ class instruction_register_control:
         self.decb = False
         self.inca = False
         self.incb = False
+        self.aux = False
         self.jmp = False
         self.jz = False
         self.jnz = False
@@ -535,6 +537,7 @@ class instruction_register_control:
         self.shr = False
         self.inca = False
         self.incb = False
+        self.aux = False
         self.deca = False
         self.decb = False
         self.jmp = False
@@ -578,6 +581,8 @@ class instruction_register_control:
             self.inca = True
         elif lower == 0xD:
             self.incb = True
+        elif lower == 0xE:
+            self.aux = True
         elif lower == 0xF:
             self.halt = True
             #global systemHalt
@@ -634,8 +639,8 @@ class instruction_register_control:
                 (self.io and self.mema) or
                 (self.io and self.memb) or
                 (self.jmp and self.storb) or
-                (self.jmp and self.deca) or 
-                (self.jmp and self.decb))
+                (self.jmp and self.deca) or
+                (self.jmp and self.aux))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -656,7 +661,9 @@ class instruction_register_control:
                 (self.log and self.storb) or
                 (self.log and self.swp) or
                 (self.jmp and self.shl) or
-                (self.jmp and self.shr))
+                (self.jmp and self.shr) or
+                (self.jmp and self.swp) or 
+                (self.jmp and self.decb))
 
     def Push(self, initTime):
         print("push")
@@ -681,6 +688,7 @@ class instruction_register_control:
 
             # Opcode Fetch
             if self.ff == 0 and self.tf == 0:
+                #print ("op fetch")
                 if self.t == 0:
                     self.ResetOutputs()
                     self.t = 1
@@ -701,6 +709,7 @@ class instruction_register_control:
                         # Opcode with no operand, continue to execute
                         self.t = 3
                         self.tf = True
+                        #print("zero op")
                         #print("Zero operand opcode")
                     else:
                         # Fetch first operand for opcodes with 1 or more operands
@@ -709,6 +718,7 @@ class instruction_register_control:
 
             # First Operand Fetch
             elif self.ff:
+                #print ("ff fetch")
                 if self.t == 0:
                     self.ResetOutputs()
                     self.t = 1
@@ -727,14 +737,16 @@ class instruction_register_control:
                     self.lt1[0] = False
                     self.ff = False
                     if self.OneOperandOpcode():
-                        # Opcode with one opderand, continue to execute
+                        # Opcode with one operand, continue to execute
                         self.t = 3
+                        #print("one op")
                     else:
                         #Fetch third operand
                         self.t = 0
 
             # Second Operand Fetch
             elif self.tf:
+                #print ("tf fetch")
                 #print("t: " + str(self.t))
                 if self.t == 0:
                     self.ResetOutputs()
@@ -759,7 +771,8 @@ class instruction_register_control:
 
                     # Execute
                     if self.mov and self.immeda:
-                        # MOV into A Immedatiate operation
+                        # MOV into A Immediate operation
+                        #print ("mov")
                         if self.t == 3:
                             self.et[0] = True
                             self.lacc[0] = True
@@ -921,6 +934,7 @@ class instruction_register_control:
                             #print("Finish SUB immediate")
                     elif self.sub and self.mema:
                         # SUB MEM
+                        #print("sub mem")
                         if self.t == 3:
                             self.t = 4
                             self.et[0] = True
@@ -938,14 +952,17 @@ class instruction_register_control:
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 1
-                    elif self.add and self.immedb:
+                    elif self.sub and self.immedb:
                         # SUB B from A
+                        #print("Sub A-B")
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 1
                         elif self.t == 4:
+                            self.ealu[0] = False
+                            self.lacc[0] = False
                             self.treset = True
 
                     elif self.swp and self.mov:
@@ -1666,7 +1683,7 @@ class instruction_register_control:
                             self.err_b[0] = False
                             self.treset = True
 
-                    # Peek at BP offset
+                    # Peek at <immed> BP offset
                     elif self.jmp and self.shl:
                         if self.t == 3:
                          # Save B
@@ -1760,6 +1777,112 @@ class instruction_register_control:
                             self.lbuff[0] = False
                             self.err[0] = False
                             self.treset = True
+
+                    # Peek at A reg BP offset
+                    elif self.jmp and self.aux:
+                        #print("A reg peek")
+                        if self.t == 3:
+                            # Save A
+                            self.t = 4
+                            self.lrr2[0] = True
+                            self.eacc[0] = True
+                        elif self.t == 4:
+                         # Save B
+                            self.t = 5
+                            print("Saved A: " + hex(self.data_bus[0]))
+                            self.lrr2[0] = False
+                            self.eacc[0] = False
+                            self.lrr1[0] = True
+                            self.ebuff[0] = True
+                        elif self.t == 5:
+                            # Load low byte of base pointer into A
+                            self.t = 6
+                            self.lrr1[0] = False
+                            self.ebuff[0] = False
+                            self.lacc[0] = True
+                            self.ebp[0] = True
+                        elif self.t == 6:
+                            # Load offset into B
+                            self.t = 7
+                            self.lacc[0] = False
+                            self.ebp[0] = False
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 7:
+                            # Add A and B
+                            self.t = 8
+                            print("Offset: " + hex(self.data_bus[0]))
+                            self.lbuff[0] = False
+                            self.err_b[0] = False
+                            self.lacc[0] = True
+                            self.ealu[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 8:
+                            # Move result to temp1
+                            self.t = 9
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 9:
+                            # Load BP2 into A
+                            self.t = 10
+                            self.eacc[0] = False
+                            self.lt1[0] = False
+                            self.ebp_b[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 10:
+                            # Decide if upper byte of BP needs to be incremented
+                            self.t = 11
+                            self.ebp_b[0] = False
+                            self.lacc[0] = False
+                            #print("BP_B: " + hex(self.data_bus[0]))
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lacc[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 11:
+                            # Move result to temp2
+                            self.t = 12
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move temp into address reg
+                            self.t = 13
+                            #print("ACC: " + hex(self.data_bus[0]))
+                            self.eacc[0] = False
+                            self.lt2[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 13:
+                            # Move output into A
+                            self.t = 14
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.lacc[0] = True
+                            self.ce[0] = True
+
+                        elif self.t == 14:
+                            # Restore B
+                            self.t = 15
+                            self.ce[0] = False
+                            self.lacc[0] = False
+                            self.err[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 15:
+                            # Call finished
+                            self.lbuff[0] = False
+                            self.err[0] = False
+                            self.treset = True
+                            
 
                     # Poke A to BP offset
                     elif self.jmp and self.shr:
@@ -1941,7 +2064,7 @@ class instruction_register_control:
                             self.err[0] = False
                             self.treset = True
 
-                    # Push to SP
+                    # Push A reg to SP
                     elif self.jmp and self.decb:
                         if self.t == 3:
                          # Save A
@@ -2023,6 +2146,87 @@ class instruction_register_control:
                             self.lbuff[0] = False
                             self.treset = True
 
+                    # Push <immed> to SP
+                    elif self.jmp and self.swp:
+                        if self.t == 3:
+                         # Save A
+                            self.t = 4
+                            self.lrr1[0] = True
+                            self.eacc[0] = True
+                        elif self.t == 4:
+                         # Save B
+                            self.t = 5
+                            self.lrr1[0] = False
+                            self.eacc[0] = False
+                            self.lrr2[0] = True
+                            self.ebuff[0] = True
+
+                        elif self.t == 5:
+                            # Load stack pointer lower byte into A
+                            self.t = 6
+                            self.lrr2[0] = False
+                            self.ebuff[0] = False
+                            self.lacc[0] = True
+                            self.esp[0] = True
+
+                        elif self.t == 6:
+                            # Load high byte of stack pointer into B
+                            self.t = 7
+                            self.lacc[0] = False
+                            self.esp[0] = False
+                            self.esp_b[0] = True
+                            self.lbuff[0] = True
+
+                        elif self.t == 7:
+                            # Increment lower byte of stack pointer in A
+                            self.t = 8
+                            self.esp_b[0] = False
+                            self.lbuff[0] = False
+                            self.ealu[0] = True
+                            self.lacc[0] = True
+                            self.lsp1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 8:
+                            # Increment upper byte of stack pointer in B if carry
+                            self.t = 9
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.lsp1[0] = False
+                            if self.cf[0]:
+                                self.lbuff[0] = True
+                                self.ealu[0] = True
+                                self.lsp2[0] = True
+                                self.sel[0] = 6
+
+                        elif self.t == 9:
+                            # Load stack pointer into address register
+                            self.t = 10
+                            self.lbuff[0] = False
+                            self.ealu[0] = False
+                            self.lsp2[0] = False
+                            self.ladd[0] = True
+                            self.esp[0] = True
+                        
+                        elif self.t == 10:
+                            # Write <immed> to SP
+                            self.t = 11
+                            self.ladd[0] = False
+                            self.esp[0] = False
+                            self.et[0] = True
+                            self.we[0] = True
+                        
+                        elif self.t == 11:
+                            # Restore B
+                            self.t = 12
+                            self.et[0] = False
+                            self.we[0] = False
+                            self.err_b[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 12:
+                            # Push finished
+                            self.err_b[0] = False
+                            self.lbuff[0] = False
+                            self.treset = True
 
         self.prevclk[0] = self.clk[0]
 
@@ -2126,10 +2330,10 @@ def TestBench2():
     #print("Start time: " + str(startTime))
     Toggle_Reset()
     global totalCycles
-    while (totalCycles < 10000) and not systemHalt:
+    while (totalCycles < 100000) and not systemHalt:
         totalCycles += 1
         Toggle_Clk()
-        if (totalCycles % 100 == 0):
+        if (totalCycles % 5000 == 0):
             display.update()
             ws.update()
 
@@ -2139,8 +2343,9 @@ def TestBench2():
     #print("ns taken: " + str(deltaTime))
     #print("Real clock rate: " + str(1000000000*totalCycles/deltaTime))
 
+    display.update()
     Print_Final_Dump()
     Dump_Memory()
+    ws.mainloop()
 
 TestBench2()
-ws.mainloop()
