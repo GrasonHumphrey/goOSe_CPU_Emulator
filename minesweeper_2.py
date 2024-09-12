@@ -175,4 +175,4 @@ canvas.bind("<Button-1>", leftclick)
 canvas.bind("<Button-3>", rightclick)
 
 ws.update()
-#ws.mainloop()
+ws.mainloop()

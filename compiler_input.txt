@@ -1,12 +1,21 @@
-mov ar A
+mov ar 8
+mov br b
+push
+swp
 push
 call f1
 pop
-io ar
+pop
+mov ar 1
+push
+mov ar fe
+push
+call f1
 halt
 
 loc f1
 peek fd
-dec ar
-poke fd
+io ar
+peek fc
+io ar
 ret

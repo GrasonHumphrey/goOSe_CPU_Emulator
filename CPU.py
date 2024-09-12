@@ -1,5 +1,8 @@
 import sys
 import math
+import time
+from tkinter import *
+from Graphics_Display import Graphics_Display
 
 count = [False]
 lip = [False]
@@ -57,11 +60,36 @@ of = [False]
 xf = [False]
 ealu = [False]
 
+
+CHAR_MEM_SIZE = 0x1000
+SCREEN_MEM_SIZE = 0x2000
+RAM_SIZE_BYTES = 0x1000
+STACK_PTR_START = 0xE00
+
+charMem = [0 for i in range(CHAR_MEM_SIZE)]
+screenMem = [0 for i in range(SCREEN_MEM_SIZE)]
+
 totalCycles = 0
 systemHalt = False
 
-MEM_SIZE_BYTES = 0x100
-STACK_PTR_START = 0x9F
+ws = Tk()
+ws.title('CPU Output')
+#ws.geometry('300x300')
+ws.config(bg='#000')
+
+PIXEL_SCALE = 2
+SCREEN_WIDTH = 512
+SCREEN_HEIGHT = 512
+
+canvas = Canvas(
+    ws,
+    height = SCREEN_HEIGHT,
+    width = SCREEN_WIDTH,
+    bg="#000"
+)
+
+canvas.pack()
+
 
 class instruction_pointer:
     def __init__(self, count, lip, lip1, lip2, clk, eip, eip_b, reset, adr_bus, data_bus):
@@ -119,7 +147,7 @@ class address_buffer:
         self.adr_bus = adr_bus
         self.data_bus = data_bus
         self.reset = reset
-        self.memory = [0 for i in range(MEM_SIZE_BYTES)]
+        self.memory = [0 for i in range(RAM_SIZE_BYTES)]
         self.adr = ['x']
         self.prevclk = [False]
 
@@ -147,14 +175,28 @@ class address_buffer:
             if self.we[0]:
                 if self.data_bus[0] == 'x':
                     print("WARNING: Adress Buffer attempt write to memory with unassigned data_bus")
-                self.memory[self.adr[0]] = self.data_bus[0]
+                if (self.adr_bus[0] < RAM_SIZE_BYTES):
+                    self.memory[self.adr[0]] = self.data_bus[0]
+                elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE):
+                    charMem[self.adr[0] - RAM_SIZE_BYTES] = self.data_bus[0]
+                elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
+                    screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE] = self.data_bus[0]
+                else:
+                    print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
                 #print("Memory write - " + hex(self.adr[0]) + ": " + hex(self.memory[self.adr[0]]))
         self.prevclk[0] = self.clk[0]
         # always @ *
         if self.ce[0]:
             #print("ADR Buff out adr: " + hex(self.adr[0]))
             #print("ADR Buff out data: " + hex(self.memory[self.adr[0]]))
-            self.data_bus[0] = self.memory[self.adr[0]]
+            if (self.adr_bus[0] < RAM_SIZE_BYTES):
+                self.data_bus[0] = self.memory[self.adr[0]]
+            elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE):
+                self.data_bus[0] = charMem[self.adr[0] - RAM_SIZE_BYTES]
+            elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
+                self.data_bus[0] = screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE]
+            else:
+                print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
 
 
 
@@ -1999,6 +2041,8 @@ acc = ab_register(lacc, eacc, clk, data_bus, acc_alu_out)
 buff = ab_register(lbuff, ebuff, clk, data_bus, buff_alu_out)
 irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf)
 
+display = Graphics_Display(charMem, screenMem, 0, canvas, SCREEN_WIDTH, SCREEN_HEIGHT, PIXEL_SCALE)
+
 sp.adr[0] = STACK_PTR_START
 bp.adr[0] = STACK_PTR_START
 
@@ -2043,9 +2087,9 @@ def Print_Final_Dump():
 def Dump_Memory():
     with open("memory_dump.txt", "w") as file:
         i = 0
-        numZeros = int(math.log10(MEM_SIZE_BYTES)) + 2
+        numZeros = int(math.log10(RAM_SIZE_BYTES)) + 2
         file.write("      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n")
-        while i < MEM_SIZE_BYTES:
+        while i < RAM_SIZE_BYTES:
             file.write(f"{i:#0{numZeros}x}" + ": ")
             for j in range(16):
                 file.write(f"{ab.memory[i+j]:02x}" + " ")
@@ -2078,13 +2122,25 @@ def TestBench1():
     dbgprint(data_bus[0])
 
 def TestBench2():
+    startTime = time.time_ns()
+    #print("Start time: " + str(startTime))
     Toggle_Reset()
     global totalCycles
     while (totalCycles < 10000) and not systemHalt:
         totalCycles += 1
         Toggle_Clk()
+        if (totalCycles % 100 == 0):
+            display.update()
+            ws.update()
+
+    endTime = time.time_ns()
+    #print("End time: " + str(endTime))
+    deltaTime = endTime - startTime
+    #print("ns taken: " + str(deltaTime))
+    #print("Real clock rate: " + str(1000000000*totalCycles/deltaTime))
 
     Print_Final_Dump()
     Dump_Memory()
 
 TestBench2()
+ws.mainloop()
