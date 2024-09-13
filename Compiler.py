@@ -46,6 +46,8 @@ locVars = [[], []]
 defVars = [[], []]
 totalVars = []
 
+shortZPAdr = False
+
 
 def throwError(description, line):
     print("ERROR: " + description + "  |  line: " + str(line+2))
@@ -68,6 +70,15 @@ def clean_operand(op, line):
             if (len(cleanOp) > 4):
                 throwError("Bad memory operand length (Memory addresses be 4 nibbles, detected: " + str(len(cleanOp)) + ")", line)
             for i in range(4 - len(cleanOp)):
+                cleanOp = "0" + cleanOp
+        elif (op[0] == "$"):
+            cleanOp = cleanOp[1:]
+            zpLen = 4
+            if (shortZPAdr):
+                zpLen = 2
+            if (len(cleanOp) > zpLen):
+                throwError("Bad zero-page address length (Need: " + str(zpLen) + " nibbles, Detected: " + str(len(cleanOp)) + ")", line)
+            for i in range(zpLen - len(cleanOp)):
                 cleanOp = "0" + cleanOp
         else:
             if (len(cleanOp) > 2):
@@ -145,13 +156,13 @@ for line in range(len(codeParts)):
             for op in range(1, len(ops)):
                 if (ops[op] in defVars[0]):
                     ops[op] = defVars[1][defVars[0].index(ops[op])]
-
+            shortZPAdr = False
             if (ops[0] == "mov"):
                 # Move operation
                 expectArgs = 3
                 if (ops[1] == "ar"):
                     # Move into A reg
-                    if (ops[2][0] == "*"):
+                    if (ops[2][0] == "*" or ops[2][0] == "$"):
                         # MOV A, [<mem>]
                         cmdBytes.append("01")
                         cmdBytes.append(clean_operand(ops[2], line))
@@ -161,7 +172,7 @@ for line in range(len(codeParts)):
                         cmdBytes.append(clean_operand(ops[2], line))
                 elif (ops[1] == "br"):
                     # Move into B reg
-                    if (ops[2][0] == "*"):
+                    if (ops[2][0] == "*" or ops[2][0] == "$"):
                         # MOV B, [<mem>]
                         cmdBytes.append("02")
                         cmdBytes.append(clean_operand(ops[2], line))
@@ -171,13 +182,13 @@ for line in range(len(codeParts)):
                         cmdBytes.append(clean_operand(ops[2], line))
                 elif (ops[2] == "ar"):
                     # MOV [<mem>], A
-                    if (ops[1][0] != "*"):
+                    if (ops[1][0] != "*" and ops[1][0] != "$"):
                         throwError("Must specify a memory address for MEM store operation", line)
                     cmdBytes.append("05")
                     cmdBytes.append(clean_operand(ops[1], line))
                 elif (ops[2] == "br"):
                     # MOV [<mem>], B
-                    if (ops[1][0] != "*"):
+                    if (ops[1][0] != "*" and ops[1][0] != "$"):
                         throwError("Must specify a memory address for MEM store operation", line)
                     cmdBytes.append("06")
                     cmdBytes.append(clean_operand(ops[1], line))
@@ -189,7 +200,7 @@ for line in range(len(codeParts)):
                 if (ops[1] == "br"):
                     # ADD B
                     cmdBytes.append("14")
-                elif (ops[1][0] == "*"):
+                elif (ops[1][0] == "*" or ops[1][0] == "$"):
                     # ADD [<mem>]
                     cmdBytes.append("11")
                     cmdBytes.append(clean_operand(ops[1], line))
@@ -203,7 +214,7 @@ for line in range(len(codeParts)):
                 if (ops[1] == "br"):
                     # SUB B
                     cmdBytes.append("44")
-                elif (ops[1][0] == "*"):
+                elif (ops[1][0] == "*" or ops[1][0] == "$"):
                     # SUB [<mem>]
                     cmdBytes.append("41")
                     cmdBytes.append(clean_operand(ops[1], line))
@@ -215,7 +226,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jmp"):
                 # Unconditional jump
                 expectArgs = 2
-                if ((ops[1][0] == "*") or (ops[1] in totalVars)):
+                if ((ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars)):
                     cmdBytes.append("81")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -224,7 +235,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jmpo"):
                 # Unconditional jump to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("83")
@@ -233,7 +244,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jz"):
                 # Jump if zero
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("91")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -242,7 +253,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jzo"):
                 # Jump if zero to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("93")
@@ -251,7 +262,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jnz"):
                 # Jump if not zero
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("a1")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -260,7 +271,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jnzo"):
                 # Jump if not zero to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("a3")
@@ -269,7 +280,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jm"):
                 # Jump if not positive
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("b1")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -278,7 +289,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jmo"):
                 # Jump if not positive to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("b3")
@@ -287,7 +298,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jp"):
                 # Jump if positive
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("c1")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -296,7 +307,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jpo"):
                 # Jump if positive to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("c3")
@@ -305,7 +316,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jc"):
                 # Jump if carry occurred
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("d1")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -314,7 +325,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jco"):
                 # Jump if carry occurred to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("d3")
@@ -323,7 +334,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jnc"):
                 # Jump if cary did not occur
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("e1")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -332,7 +343,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jnco"):
                 # Jump if cary did not occur to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("e3")
@@ -341,7 +352,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jof"):
                 # Jump if overflow occurred
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("d2")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -350,7 +361,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jofo"):
                 # Jump if overflow occurred to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("d4")
@@ -359,7 +370,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jnof"):
                 # Jump if overflow did not occur
                 expectArgs = 2
-                if (ops[1][0] == "*") or (ops[1] in totalVars):
+                if (ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars):
                     cmdBytes.append("e2")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -368,7 +379,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "jnofo"):
                 # Jump if overflow did not occur to offset
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
                 else:
                     cmdBytes.append("e4")
@@ -389,7 +400,7 @@ for line in range(len(codeParts)):
                 if (ops[1] == "br"):
                     # AND B
                     cmdBytes.append("21")
-                elif (ops[1][0] == "*"):
+                elif (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot AND with memory location", line)
                 else:
                     # AND <immed>
@@ -402,7 +413,7 @@ for line in range(len(codeParts)):
                 if (ops[1] == "br"):
                     # OR B
                     cmdBytes.append("22")
-                elif (ops[1][0] == "*"):
+                elif (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot OR with memory location", line)
                 else:
                     # OR <immed>
@@ -414,7 +425,7 @@ for line in range(len(codeParts)):
                 if (ops[1] == "br"):
                     # XOR B
                     cmdBytes.append("23")
-                elif (ops[1][0] == "*"):
+                elif (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot XOR with memory location", line)
                 else:
                     # XOR <immed>
@@ -450,7 +461,7 @@ for line in range(len(codeParts)):
 
             elif (ops[0] == "sto"):
                 expectArgs = 2
-                if ((ops[1][0] == "*") or (ops[1] in totalVars)):
+                if ((ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars)):
                     cmdBytes.append("09")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -459,7 +470,7 @@ for line in range(len(codeParts)):
 
             elif (ops[0] == "ldo"):
                 expectArgs = 2
-                if ((ops[1][0] == "*") or (ops[1] in totalVars)):
+                if ((ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars)):
                     cmdBytes.append("08")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -467,13 +478,21 @@ for line in range(len(codeParts)):
 
             elif (ops[0] == "stz"):
                 expectArgs = 2
-                cmdBytes.append("0b")
-                cmdBytes.append(clean_operand(ops[1], line))
-
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    cmdBytes.append("0b")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                else:
+                    throwError("Can only zero-page store to zero-page location", line)
+                
             elif (ops[0] == "ldz"):
                 expectArgs = 2
-                cmdBytes.append("0a")
-                cmdBytes.append(clean_operand(ops[1], line))
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    cmdBytes.append("0a")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                else:
+                    throwError("Can only zero-page store to zero-page location", line)
 
             elif (ops[0] == "halt"):
                 expectArgs = 1
@@ -494,7 +513,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "call"):
                 # Call function
                 expectArgs = 2
-                if ((ops[1][0] == "*") or (ops[1] in totalVars)):
+                if ((ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars)):
                     cmdBytes.append("85")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
@@ -508,7 +527,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "peek"):
                 # Peek at offset from BP
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Can only peek at offset from BP", line)
                 elif (ops[1] == "ar"):
                     cmdBytes.append("8E")
@@ -519,7 +538,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "poke"):
                 # Peek A into offset from BP
                 expectArgs = 2
-                if (ops[1][0] == "*"):
+                if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Can only poke at offset from BP", line)
                 else:
                     cmdBytes.append("89")

@@ -1,0 +1,100 @@
+# Text to code converter
+# A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z
+# 1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
+#
+# a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z
+# 1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
+#
+def @a 1
+def @b 2
+def @c 3
+def @d 4
+def @e 5
+def @f 6
+def @g 7
+def @h 8
+def @i 9
+def @j A
+def @k B
+def @l C
+def @m D
+def @n E
+def @o F
+def @p 10
+def @q 11
+def @r 12
+def @s 13
+def @t 14
+def @u 15
+def @v 16
+def @w 17
+def @x 18
+def @y 19
+def @z 1A
+def @_ 20
+
+# Location of next character to draw
+def cursor1 $00
+def cursor2 $01
+
+set cursor1 00
+set cursor2 20
+
+# Location of next text to be drawn to the screen
+def text1 $02
+def text2 $03
+
+def helloworld1 00
+def helloworld2 0A
+set *A00 @h
+set *A01 @e
+set *A02 @l
+set *A03 @l
+set *A04 @o
+set *A05 @_
+set *A06 @w
+set *A07 @o
+set *A08 @r
+set *A09 @l
+set *A0A @d
+set *A0B FF
+
+def name1 0C
+def name2 0A
+set *A0C @_
+set *A0D @g
+set *A0E @r
+set *A0F @a
+set *A10 @s
+set *A11 @o
+set *A12 @n
+set *A13 FF
+
+
+mov ar helloworld1
+mov text1 ar
+mov ar helloworld2
+mov text2 ar
+call print
+
+mov ar name1
+mov text1 ar
+mov ar name2
+mov text2 ar
+call print
+
+
+loc print
+mov br 0
+loc startprint
+
+ldz text1
+inc ar
+jz endprint
+dec ar
+stz cursor1
+inc br
+jmp startprint
+
+loc endprint
+ret
