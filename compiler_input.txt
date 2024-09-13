@@ -39,30 +39,13 @@ def cursor2 *0DFF
 set cursor1 20
 set cursor2 00
 
-def a1 *0DE0
-def a2 *0DE1
-def b1 *0DE2
-def b2 *0DE3
-def o1 *0DE4
-def o2 *0DE5
+def screen *2000
 
-set a1 FE
-set a2 03
-set b1 02
-set b2 04
-
-clc
-mov ar a1
-mov br b1
-add br
-mov o1 ar
-mov ar a2
-mov br b2
-add br
-mov o2 ar
-mov ar 1
-add 1
-io ar
+mov ar 0
+mov br 0
+sto screen
+mov br 2
+sto screen
 
 
 push @h

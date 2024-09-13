@@ -446,13 +446,22 @@ for line in range(len(codeParts)):
                 expectArgs = 1
                 cmdBytes.append("07")
 
-            elif (ops[0] == "sadd"):
-                expectArgs = 1
-                cmdBytes.append("09")
+            elif (ops[0] == "sto"):
+                expectArgs = 2
+                if ((ops[1][0] == "*") or (ops[1] in totalVars)):
+                    cmdBytes.append("09")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                else:
+                    throwError("Can only store offset to memory location", line)
+                
 
-            elif (ops[0] == "gadd"):
-                expectArgs = 1
-                cmdBytes.append("08")
+            elif (ops[0] == "ldo"):
+                expectArgs = 2
+                if ((ops[1][0] == "*") or (ops[1] in totalVars)):
+                    cmdBytes.append("08")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                else:
+                    throwError("Can only load offset to memory location", line)
 
             elif (ops[0] == "stoab"):
                 expectArgs = 2

@@ -176,11 +176,12 @@ class address_buffer:
             if self.we[0]:
                 if self.data_bus[0] == 'x':
                     print("WARNING: Adress Buffer attempt write to memory with unassigned data_bus")
-                if (self.adr_bus[0] < RAM_SIZE_BYTES):
+                if (self.adr[0] < RAM_SIZE_BYTES):
                     self.memory[self.adr[0]] = self.data_bus[0]
-                elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE):
+                elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE):
+                    print("char mem write")
                     charMem[self.adr[0] - RAM_SIZE_BYTES] = self.data_bus[0]
-                elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
+                elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
                     screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE] = self.data_bus[0]
                 else:
                     print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
@@ -302,10 +303,11 @@ class arithmetic_logic_unit:
                 #print(self.data[0])
                 #print()
                 if self.ealu[0]:
+                    #print("Add result: " + hex(result))
                     if self.cf[0]:
                         result += 1
                         self.data[0] = result & 0xFF
-                        print("carry")
+                        #print("carry")
                     #print("Add result: " + hex(self.data[0]))
                     # Calculate carry and overflow flags
                     # Set overflow flag if result is incorrect for signed arithmetic
@@ -314,8 +316,8 @@ class arithmetic_logic_unit:
                     # Set carry flag if result is incorrect for unsigned arithmetic
                     #self.cf[0] = ((self.alu_in_a[0]&0x80) or (self.alu_in_b[0]&0x80)) and ~(self.data[0]&0x80)
                     self.cf[0] = result > 0xFF
-                    print(hex(result))
-                    print(self.cf[0])
+                    #print(hex(result))
+                    #print(self.cf[0])
                     # XF for carry needed with unsigned A and signed B
                     self.xf[0] = not ((self.alu_in_b[0] <= 0x7F and result <= 0xFF) or (self.alu_in_b[0] > 0x7F and result > 0xFF))
                     if self.xf[0]:
@@ -808,8 +810,9 @@ class instruction_register_control:
                             self.et[0] = False
                             self.lbuff[0] = False
                             self.treset = True
+                    
+                    # MOV A into MEM                        
                     elif self.mov and self.stora:
-                        # MOV A into MEM
                         if self.t == 3:
                             self.t = 4
                             self.et[0] = True
@@ -881,6 +884,92 @@ class instruction_register_control:
                             self.lbuff[0] = False
                             self.ce[0] = False
 
+                    # STO: Store A into offset at B from given address in MEM                        
+                    elif self.mov and self.shr:
+                        if self.t == 3:
+                            # Save A
+                            self.t = 4
+                            self.lrr1[0] = True
+                            self.eacc[0] = True
+                        elif self.t == 4:
+                            # Load lower byte of address into A
+                            self.t = 5
+                            self.lrr1[0] = False
+                            self.eacc[0] = False
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 5:
+                            # Add A and B
+                            self.t = 6
+                            self.et[0] = False
+                            self.lacc[0] = False
+                            self.lacc[0] = True
+                            self.ealu[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 6:
+                            # Move result to temp1
+                            self.t = 7
+                            #print("A+B: " + hex(self.data_bus[0]))
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 7:
+                            # Load high byte of address into A
+                            self.t = 8
+                            self.eacc[0] = False
+                            self.lt1[0] = False
+                            self.lacc[0] = True
+                            self.et_b[0] = True
+                        elif self.t == 8:
+                            # Decide if upper byte of BP needs to be incremented
+                            self.t = 9
+                            self.et_b[0] = False
+                            self.lacc[0] = False
+                            #print("BP_B: " + hex(self.data_bus[0]))
+                            if self.xf[0]:
+                                self.lacc[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Move result to temp2
+                            self.t = 10
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt2[0] = True
+
+                        elif self.t == 10:
+                            # Move temp into address reg
+                            self.t = 11
+                            self.eacc[0] = False
+                            self.lt2[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Write saved value of A and restore A
+                            self.t = 12
+                            #print("Address: " + hex(self.adr_bus[0]))
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.err[0] = True
+                            self.we[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        elif self.t == 12:
+                            # Call finished
+                            self.lacc[0] = False
+                            self.err[0] = False
+                            self.clc[0] = False
+                            self.we[0] = False
+                            self.treset = True
+                            #print("finish poke")
+
                     elif self.add and self.immeda:
                         # ADD Immediate
                         if self.t == 3:
@@ -932,6 +1021,7 @@ class instruction_register_control:
                             self.lacc[0] = False
                             print("Add t=4")
                             self.treset = True
+                    
                     # Clear carry flag
                     elif self.add and self.stora:
                         if self.t == 3:
@@ -1517,7 +1607,6 @@ class instruction_register_control:
                             self.lbuff[0] = False
                             self.treset = True
 
-
                     # Return from Function
                     elif self.jmp and self.storb:
                         if self.t == 3:
@@ -1925,7 +2014,6 @@ class instruction_register_control:
                             self.clc[0] = False
                             self.treset = True
                             
-
                     # Poke A to BP offset
                     elif self.jmp and self.shr:
                         if self.t == 3:
