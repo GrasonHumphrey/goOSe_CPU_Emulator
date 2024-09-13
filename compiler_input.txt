@@ -34,22 +34,35 @@ def @z 1A
 def @_ 20
 
 # Location of next character to draw
-def cursor1 *0DFE
-def cursor2 *0DFF
-set cursor1 20
-set cursor2 00
+def cursor1 00
+def cursor2 01
+
+set *0000 00
+set *0001 20
 
 def screen *2000
 
 mov ar 3
 mov br 0
-sto screen
+stz cursor1
 mov br 2
 mov ar 0
-sto screen
+stz cursor1
+
+clc
+mov ar *0000
+add DE
+mov *0000 ar
+mov ar *0001
+add 0
+mov *0001 ar
 mov br 0
-ldo screen
-io ar
+mov ar 6
+stz cursor1
+
+
+halt
+
 
 
 push @h

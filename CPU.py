@@ -67,6 +67,8 @@ SCREEN_MEM_SIZE = 0x2000
 RAM_SIZE_BYTES = 0x1000
 STACK_PTR_START = 0xE00
 
+CODE_START_LOC = 0x100
+
 charMem = [0 for i in range(CHAR_MEM_SIZE)]
 screenMem = [0 for i in range(SCREEN_MEM_SIZE)]
 
@@ -110,10 +112,10 @@ class instruction_pointer:
     def Update(self):
         if (not self.prevclk[0]) and (self.clk[0]):
             if self.reset[0]:
-                self.adr[0] = 0
+                self.adr[0] = CODE_START_LOC
             if self.count[0]:
                 self.adr[0] += 1
-                #print("IP Count: " + str(self.adr[0]))
+                #print("IP Count: " + hex(self.adr[0]))
             if self.lip[0]:
                 if self.adr_bus[0] == 'x':
                     print("WARNING: Attempt load IP with unassigned adr_bus")
@@ -664,6 +666,8 @@ class instruction_register_control:
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
                 (self.mov and self.immedb) or   # Immediate move into B
+                (self.mov and self.deca) or
+                (self.mov and self.decb) or
                 (self.add and self.immeda) or   # Immediately add
                 (self.sub and self.immeda) or   # Immediately subtract
                 (self.log and self.shr) or
@@ -724,16 +728,17 @@ class instruction_register_control:
                     self.ce[0] = False
                     self.linst = False
                     self.count[0] = True
+                    #print("Opcode: " + hex(self.data_bus[0]))
                     if self.ZeroOperandOpcode():
                         # Opcode with no operand, continue to execute
                         self.t = 3
                         self.tf = True
-                        #print("zero op")
                         #print("Zero operand opcode")
                     else:
                         # Fetch first operand for opcodes with 1 or more operands
                         self.t = 0
                         self.ff = True
+                        #print("More than zero operand opcode")
 
             # First Operand Fetch
             elif self.ff:
@@ -828,6 +833,7 @@ class instruction_register_control:
                             self.treset = True
                             self.eacc[0] = False
                             self.we[0] = False
+                    
                     elif self.mov and self.storb:
                         # MOV B into MEM
                         if self.t == 3:
@@ -847,6 +853,7 @@ class instruction_register_control:
                             self.ebuff[0] = False
                             #print("Disable B")
                             self.we[0] = False
+                    
                     elif self.mov and self.mema:
                         # MOV MEM into A
                         if self.t == 3:
@@ -867,6 +874,7 @@ class instruction_register_control:
                             self.ce[0] = False
                             #global totalCycles
                             #print("Finish MOV MEM into A")
+                    
                     elif self.mov and self.memb:
                         # MOV MEM into B
                         if self.t == 3:
@@ -968,7 +976,7 @@ class instruction_register_control:
                             self.clc[0] = False
                             self.we[0] = False
                             self.treset = True
-                            #print("finish poke")
+                            #print("finish STO")
 
                     # LDO: Load into A from offset at B from given address in MEM                        
                     elif self.mov and self.shl:
@@ -1049,8 +1057,106 @@ class instruction_register_control:
                             self.treset = True
                             #print("finish poke")
 
+                    # STZ: Store A into offset at B from given zero-page pointer address              
+                    elif self.mov and self.decb:
+                        if self.t == 3:
+                            # Save A to RR1
+                            self.t = 4
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Load 0 into T2
+                            self.t = 5
+                            self.eacc[0] = False
+                            self.lrr1[0] = False
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 5:
+                            # Load temp into address reg
+                            self.t = 6
+                            self.lt2[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 6:
+                            # Read from MEM into A
+                            self.t = 7
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.ce[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 7:
+                            # Add offset in B to A, then save to RR2
+                            self.t = 8
+                            self.ce[0] = False
+                            self.lacc[0] = False
+                            self.ealu[0] = True
+                            self.lrr2[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.t = 9
+                            self.ealu[0] = False
+                            self.lrr2[0] = False
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.t = 10
+                            self.et[0] = False
+                            self.lacc[0] = False
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.t = 11
+                            self.ealu[0] = False
+                            self.lt1[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.t = 12
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in RR2 to T1
+                            self.t = 13
+                            self.ce[0] = False
+                            self.lt2[0] = False
+                            self.err_b[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.t = 14
+                            self.err_b[0] = False
+                            self.lt1[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Write stored A in RR1 to MEM
+                            self.t = 15
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.err[0] = True
+                            self.we[0] = True
+                            self.clc[0] = True
+                        elif self.t == 15:
+                            # Finish STZ
+                            self.t = 16
+                            self.err[0] = False
+                            self.we[0] = False
+                            self.clc[0] = False
+                            self.treset = True
+
+
+                        
+
+
+                    # ADD Immediate
                     elif self.add and self.immeda:
-                        # ADD Immediate
                         if self.t == 3:
                             self.et[0] = True
                             self.lbuff[0] = True
@@ -1067,6 +1173,7 @@ class instruction_register_control:
                             self.lacc[0] = False
                             self.treset = True
                             #print("Finish ADD Immediate")
+                    
                     elif self.add and self.mema:
                         # ADD MEM
                         if self.t == 3:
@@ -1086,6 +1193,7 @@ class instruction_register_control:
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 0
+                    
                     elif self.add and self.immedb:
                         # ADD B to A
                         if self.t == 3:

@@ -32,7 +32,9 @@ if __name__ == "__main__":
 
 output = ""
 
-cmdNum = 0
+CODE_START_LOC = 0x100
+
+cmdNum = CODE_START_LOC
 lowestSet = -1
 setVars = []
 cmdBytes = []
@@ -66,12 +68,12 @@ def clean_operand(op, line):
             if (len(cleanOp) > 4):
                 throwError("Bad memory operand length (Memory addresses be 4 nibbles, detected: " + str(len(cleanOp)) + ")", line)
             for i in range(4 - len(cleanOp)):
-                cleanOp = "0" + cleanOp;
+                cleanOp = "0" + cleanOp
         else:
             if (len(cleanOp) > 2):
                 throwError("Bad data operand length (Data must be 2 nibbles, detected: " + str(len(cleanOp)) + ")", line)
             for i in range(2 - len(cleanOp)):
-                cleanOp = "0" + cleanOp;
+                cleanOp = "0" + cleanOp
 
         for i in range(len(cleanOp)):
             if (not(cleanOp[i] in hexChars)):
@@ -463,14 +465,15 @@ for line in range(len(codeParts)):
                 else:
                     throwError("Can only load offset to memory location", line)
 
-            elif (ops[0] == "stoab"):
+            elif (ops[0] == "stz"):
+                expectArgs = 2
+                cmdBytes.append("0b")
+                cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "ldz"):
                 expectArgs = 2
                 cmdBytes.append("0a")
                 cmdBytes.append(clean_operand(ops[1], line))
-
-            elif (ops[0] == "ldab"):
-                expectArgs = 1
-                cmdBytes.append("0b")
 
             elif (ops[0] == "halt"):
                 expectArgs = 1
@@ -558,8 +561,9 @@ for line in range(len(codeParts)):
                     setVars.append(outLine)
                 else:
                     throwError("Multiple SET commands to same location", line)
-                if (outLine <= cmdNum):
-                    throwError("SET overwrote compiled code", line)
+                # TODO: Bring this functionality back
+                #if (outLine <= cmdNum):
+                #    throwError("SET overwrote compiled code", line)
 
             elif (ops[0] == "here"):
                 expectArgs == 2
