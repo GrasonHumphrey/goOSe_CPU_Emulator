@@ -41,11 +41,15 @@ set cursor2 00
 
 def screen *2000
 
-mov ar 0
+mov ar 3
 mov br 0
 sto screen
 mov br 2
+mov ar 0
 sto screen
+mov br 0
+ldo screen
+io ar
 
 
 push @h

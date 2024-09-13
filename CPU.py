@@ -970,6 +970,85 @@ class instruction_register_control:
                             self.treset = True
                             #print("finish poke")
 
+                    # LDO: Load into A from offset at B from given address in MEM                        
+                    elif self.mov and self.shl:
+                        if self.t == 3:
+                            # Load lower byte of address into A
+                            self.t = 4
+                            self.lrr1[0] = False
+                            self.eacc[0] = False
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 4:
+                            # Add A and B
+                            self.t = 5
+                            self.et[0] = False
+                            self.lacc[0] = False
+                            self.lacc[0] = True
+                            self.ealu[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 5:
+                            # Move result to temp1
+                            self.t = 6
+                            #print("A+B: " + hex(self.data_bus[0]))
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 6:
+                            # Load high byte of address into A
+                            self.t = 7
+                            self.eacc[0] = False
+                            self.lt1[0] = False
+                            self.lacc[0] = True
+                            self.et_b[0] = True
+                        elif self.t == 7:
+                            # Decide if upper byte of BP needs to be incremented
+                            self.t = 8
+                            self.et_b[0] = False
+                            self.lacc[0] = False
+                            #print("BP_B: " + hex(self.data_bus[0]))
+                            if self.xf[0]:
+                                self.lacc[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 8:
+                            # Move result to temp2
+                            self.t = 9
+                            self.lacc[0] = False
+                            self.ealu[0] = False
+                            self.eacc[0] = True
+                            self.lt2[0] = True
+
+                        elif self.t == 9:
+                            # Move temp into address reg
+                            self.t = 10
+                            self.eacc[0] = False
+                            self.lt2[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 10:
+                            # Read into A from MEM
+                            self.t = 11
+                            #print("Address: " + hex(self.adr_bus[0]))
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.ce[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        elif self.t == 11:
+                            # Call finished
+                            self.lacc[0] = False
+                            self.clc[0] = False
+                            self.ce[0] = False
+                            self.treset = True
+                            #print("finish poke")
+
                     elif self.add and self.immeda:
                         # ADD Immediate
                         if self.t == 3:
