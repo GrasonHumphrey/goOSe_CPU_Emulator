@@ -390,7 +390,7 @@ for line in range(len(codeParts)):
                 elif (ops[1][0] == "*"):
                     throwError("Cannot AND with memory location", line)
                 else:
-                    # ADD <immed>
+                    # AND <immed>
                     cmdBytes.append("25")
                     cmdBytes.append(clean_operand(ops[1], line))
 
@@ -529,6 +529,12 @@ for line in range(len(codeParts)):
                     cmdBytes.append("87")
                     cmdBytes.append(clean_operand(ops[1], line))
 
+            # Clear carry bit
+            elif (ops[0] == "clc"):
+                # Return from function
+                expectArgs = 1
+                cmdBytes.append("15")
+
                 
 
             elif (ops[0] == "set"):
@@ -611,8 +617,8 @@ for locVar in range(len(locVars[0])):
 
 print
 print("Compilation success.")
-print
-print(output)
+#print
+#print(output)
 f = open("compiled_output.txt", "w")
 f.write(output)
 f.close()

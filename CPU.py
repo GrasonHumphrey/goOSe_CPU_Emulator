@@ -58,6 +58,7 @@ zf = [False]
 sf = [False]
 of = [False]
 xf = [False]
+clc = [False]
 ealu = [False]
 
 
@@ -250,7 +251,7 @@ class temporary_register:
                 if self.data_bus[0] == 'x':
                     print("WARNING: Temp Reg attempt to load with unassigned data bus")
                 self.adr[0] = (int(self.adr[0]) & 0x00FF) | (int(data_bus[0]) << 8)
-                print("TR2 Load: " + hex(self.data_bus[0]))
+                #print("TR2 Load: " + hex(self.data_bus[0]))
             if self.lta[0]:
                 if self.adr_bus[0] == 'x':
                     print("WARNING: Temp Reg attempt to load with unassigned adr bus")
@@ -268,7 +269,7 @@ class temporary_register:
             #print("TR Data Out: " + hex((self.adr[0] & 0xFF00) >> 8))
 
 class arithmetic_logic_unit:
-    def __init__(self, clk, data_bus, alu_in_a, alu_in_b, sel, ealu, cf, zf, sf, of, xf):
+    def __init__(self, clk, data_bus, alu_in_a, alu_in_b, sel, ealu, cf, zf, sf, of, xf, clc):
         self.clk = clk
         self.data_bus = data_bus
         self.alu_in_a = alu_in_a
@@ -280,121 +281,135 @@ class arithmetic_logic_unit:
         self.sf = sf
         self.of = of
         self.xf = xf
+        self.clc = clc
         self.data = [0]
 
     def Update(self):
         # always @ *
-        overrideSF = False
-        if self.sel[0] == 0x0:
-            # ADD
-            result = (self.alu_in_a[0] + self.alu_in_b[0])
-            self.data[0] = result & 0xFF
-            
-            #print(self.alu_in_a[0])
-            #print(self.alu_in_b[0])
-            #print(self.data[0])
-            #print()
-            if self.ealu[0]:
-                #print("Add result: " + hex(self.data[0]))
-                # Calculate carry and overflow flags
-                # Set overflow flag if result is incorrect for signed arithmetic
-                #self.of[0] = (~(self.data[0]&0x80) and (self.alu_in_a[0]&0x80) and (self.alu_in_b[0]&0x80)) or ((self.data[0]&0x80) and ~(self.alu_in_a[0]&0x80) and ~(self.alu_in_b[0]&0x80))
-                self.of[0] = (result > 0x7F) or (result < -0x7F)
-                # Set carry flag if result is incorrect for unsigned arithmetic
-                #self.cf[0] = ((self.alu_in_a[0]&0x80) or (self.alu_in_b[0]&0x80)) and ~(self.data[0]&0x80)
-                self.cf[0] = result > 0xFF
-                # XF for carry needed with unsigned A and signed B
-                self.xf[0] = not ((self.alu_in_b[0] <= 0x7F and result <= 0xFF) or (self.alu_in_b[0] > 0x7F and result > 0xFF))
-                if self.xf[0]:
-                    overrideSF = True
-                    self.sf[0] = self.alu_in_b[0] > 0x7F
+        if self.clk[0]:
+            overrideSF = False
+            if self.clc[0]:
+                self.cf[0] = False
+            if self.sel[0] == 0x0:
+                # ADD
+                result = (self.alu_in_a[0] + self.alu_in_b[0])
+                    #print(hex(result)
+                
+                self.data[0] = result & 0xFF
+                
+                #print(self.alu_in_a[0])
+                #print(self.alu_in_b[0])
+                #print(self.data[0])
+                #print()
+                if self.ealu[0]:
+                    if self.cf[0]:
+                        result += 1
+                        self.data[0] = result & 0xFF
+                        print("carry")
+                    #print("Add result: " + hex(self.data[0]))
+                    # Calculate carry and overflow flags
+                    # Set overflow flag if result is incorrect for signed arithmetic
+                    #self.of[0] = (~(self.data[0]&0x80) and (self.alu_in_a[0]&0x80) and (self.alu_in_b[0]&0x80)) or ((self.data[0]&0x80) and ~(self.alu_in_a[0]&0x80) and ~(self.alu_in_b[0]&0x80))
+                    self.of[0] = (result > 0x7F) or (result < -0x7F)
+                    # Set carry flag if result is incorrect for unsigned arithmetic
+                    #self.cf[0] = ((self.alu_in_a[0]&0x80) or (self.alu_in_b[0]&0x80)) and ~(self.data[0]&0x80)
+                    self.cf[0] = result > 0xFF
+                    print(hex(result))
+                    print(self.cf[0])
+                    # XF for carry needed with unsigned A and signed B
+                    self.xf[0] = not ((self.alu_in_b[0] <= 0x7F and result <= 0xFF) or (self.alu_in_b[0] > 0x7F and result > 0xFF))
+                    if self.xf[0]:
+                        overrideSF = True
+                        self.sf[0] = self.alu_in_b[0] > 0x7F
 
-        if self.sel[0] == 0x1:
-            # SUBTRACT
-            result = (self.alu_in_a[0] - self.alu_in_b[0])
-            self.data[0] = result & 0xFF
-            if self.ealu[0]:
-                # Calculate carry and overflow flags
-                # Set overflow flag if result is incorrect for signed arithmetic
-                #self.of[0] = (~(self.data[0]&0x80) and (self.alu_in_a[0]&0x80) and (self.alu_in_b[0]&0x80)) or ((self.data[0]&0x80) and ~(self.alu_in_a[0]&0x80) and ~(self.alu_in_b[0]&0x80))
-                self.of[0] = (result > 0x7F) or (result < -0x7F)
-                # Set carry flag if result is incorrect for unsigned arithmetic
-                self.cf[0] = result < 0
-                # XF for carry needed with unsigned A and signed B
-                self.xf[0] = not ((self.alu_in_b[0] <= 0x7F and result <= 0xFF) or (self.alu_in_b[0] > 0x7F and result > 0xFF))
-                if self.xf[0]:
-                    overrideSF = True
-                    self.sf[0] = self.alu_in_b[0] > 0x7F
-        if self.sel[0] == 0x2:
-            # Bit shift left
-            #result = (self.alu_in_a[0] << self.alu_in_b[0])
-            result = (self.alu_in_a[0] << 1)
-            self.data[0] = result & 0xFF
-            self.cf[0] = result > 0xFF
-        if self.sel[0] == 0x3:
-            # Bit shift right
-            #result = (self.alu_in_a[0] >> self.alu_in_b[0])
-            result = (self.alu_in_a[0] >> 1)
-            self.data[0] = result & 0xFF
-            self.cf[0] = result < 0
-        if self.sel[0] == 0x4:
-            # Increment A
-            result = self.alu_in_a[0] + 1
-            self.data[0] = result & 0xFF
-            if self.ealu[0]:
-                self.of[0] = (result > 0x7F) or (result < -0x7F)
+            if self.sel[0] == 0x1:
+                # SUBTRACT
+                result = (self.alu_in_a[0] - self.alu_in_b[0])
+                if self.cf:
+                    result -= 1
+                self.data[0] = result & 0xFF
+                if self.ealu[0]:
+                    # Calculate carry and overflow flags
+                    # Set overflow flag if result is incorrect for signed arithmetic
+                    #self.of[0] = (~(self.data[0]&0x80) and (self.alu_in_a[0]&0x80) and (self.alu_in_b[0]&0x80)) or ((self.data[0]&0x80) and ~(self.alu_in_a[0]&0x80) and ~(self.alu_in_b[0]&0x80))
+                    self.of[0] = (result > 0x7F) or (result < -0x7F)
+                    # Set carry flag if result is incorrect for unsigned arithmetic
+                    self.cf[0] = result < 0
+                    # XF for carry needed with unsigned A and signed B
+                    self.xf[0] = not ((self.alu_in_b[0] <= 0x7F and result <= 0xFF) or (self.alu_in_b[0] > 0x7F and result > 0xFF))
+                    if self.xf[0]:
+                        overrideSF = True
+                        self.sf[0] = self.alu_in_b[0] > 0x7F
+            if self.sel[0] == 0x2:
+                # Bit shift left
+                #result = (self.alu_in_a[0] << self.alu_in_b[0])
+                result = (self.alu_in_a[0] << 1)
+                self.data[0] = result & 0xFF
                 self.cf[0] = result > 0xFF
-        if self.sel[0] == 0x5:
-            # Decrement A
-            result = self.alu_in_a[0] - 1
-            self.data[0] = result & 0xFF
-            if self.ealu[0]:
-                self.of[0] = (result > 0x7F) or (result < -0x7F)
+            if self.sel[0] == 0x3:
+                # Bit shift right
+                #result = (self.alu_in_a[0] >> self.alu_in_b[0])
+                result = (self.alu_in_a[0] >> 1)
+                self.data[0] = result & 0xFF
                 self.cf[0] = result < 0
-        if self.sel[0] == 0x6:
-            # Increment B
-            result = self.alu_in_b[0] + 1
-            self.data[0] = result & 0xFF
-            if self.ealu[0]:
-                self.of[0] = (result > 0x7F) or (result < -0x7F)
-                self.cf[0] = result > 0xFF
-        if self.sel[0] == 0x7:
-            # Decrement B
-            result = self.alu_in_b[0] - 1
-            self.data[0] = result & 0xFF
-            if self.ealu[0]:
-                self.of[0] = (result > 0x7F) or (result < -0x7F)
-                self.cf[0] = result < 0
-        if self.sel[0] == 0x8:
-            # AND A and B
-            self.data[0] = self.alu_in_a[0] & self.alu_in_b[0]
-        if self.sel[0] == 0x9:
-            # OR A and B
-            self.data[0] = self.alu_in_a[0] | self.alu_in_b[0]
-        if self.sel[0] == 0xA:
-            # XOR A and B
-            self.data[0] = self.alu_in_a[0] ^ self.alu_in_b[0]
-            #print("A: " + str(self.alu_in_a[0]))
-            #print("B: " + str(self.alu_in_b[0]))
-            #print("Data: " + str(self.data[0]))
-        if self.sel[0] == 0xB:
-            # NOT A
-            self.data[0] = (~self.alu_in_a[0]) & 0xFF
-        if self.sel[0] == 0xC:
-            # NOT B
-            self.data[0] = (~self.alu_in_b[0]) & 0xFF
+            if self.sel[0] == 0x4:
+                # Increment A
+                result = self.alu_in_a[0] + 1
+                self.data[0] = result & 0xFF
+                if self.ealu[0]:
+                    self.of[0] = (result > 0x7F) or (result < -0x7F)
+                    self.cf[0] = result > 0xFF
+            if self.sel[0] == 0x5:
+                # Decrement A
+                result = self.alu_in_a[0] - 1
+                self.data[0] = result & 0xFF
+                if self.ealu[0]:
+                    self.of[0] = (result > 0x7F) or (result < -0x7F)
+                    self.cf[0] = result < 0
+            if self.sel[0] == 0x6:
+                # Increment B
+                result = self.alu_in_b[0] + 1
+                self.data[0] = result & 0xFF
+                if self.ealu[0]:
+                    self.of[0] = (result > 0x7F) or (result < -0x7F)
+                    self.cf[0] = result > 0xFF
+            if self.sel[0] == 0x7:
+                # Decrement B
+                result = self.alu_in_b[0] - 1
+                self.data[0] = result & 0xFF
+                if self.ealu[0]:
+                    self.of[0] = (result > 0x7F) or (result < -0x7F)
+                    self.cf[0] = result < 0
+            if self.sel[0] == 0x8:
+                # AND A and B
+                self.data[0] = self.alu_in_a[0] & self.alu_in_b[0]
+            if self.sel[0] == 0x9:
+                # OR A and B
+                self.data[0] = self.alu_in_a[0] | self.alu_in_b[0]
+            if self.sel[0] == 0xA:
+                # XOR A and B
+                self.data[0] = self.alu_in_a[0] ^ self.alu_in_b[0]
+                #print("A: " + str(self.alu_in_a[0]))
+                #print("B: " + str(self.alu_in_b[0]))
+                #print("Data: " + str(self.data[0]))
+            if self.sel[0] == 0xB:
+                # NOT A
+                self.data[0] = (~self.alu_in_a[0]) & 0xFF
+            if self.sel[0] == 0xC:
+                # NOT B
+                self.data[0] = (~self.alu_in_b[0]) & 0xFF
 
-        if self.ealu[0]:
-            self.data_bus[0] = self.data[0]
-            #print(self.data_bus[0])
-            # Zero flag is set if result is zero
-            self.zf[0] = self.data[0] == 0
-            # Sign flag is set if result is less than zero
-            if not overrideSF:
-                self.sf[0] = self.data[0] & 0xFF > 0x7F
+            if self.ealu[0]:
+                self.data_bus[0] = self.data[0]
+                #print(self.data_bus[0])
+                # Zero flag is set if result is zero
+                self.zf[0] = self.data[0] == 0
+                # Sign flag is set if result is less than zero
+                if not overrideSF:
+                    self.sf[0] = self.data[0] & 0xFF > 0x7F
 
 class instruction_register_control:
-    def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf):
+    def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf, clc):
         self.clk = clk
         self.data_bus = data_bus
         self.adr_bus = adr_bus
@@ -440,6 +455,7 @@ class instruction_register_control:
         self.sf = sf
         self.of = of
         self.xf = xf
+        self.clc = clc
         self.linst = False
         self.data = [0]
         self.mema = False
@@ -640,7 +656,8 @@ class instruction_register_control:
                 (self.io and self.memb) or
                 (self.jmp and self.storb) or
                 (self.jmp and self.deca) or
-                (self.jmp and self.aux))
+                (self.jmp and self.aux) or
+                (self.add and self.stora))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -907,11 +924,22 @@ class instruction_register_control:
                             self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
+                            print("Add t=3")
                             self.sel[0] = 0
                             #print(self.data_bus)
                         elif self.t == 4:
                             self.ealu[0] = False
                             self.lacc[0] = False
+                            print("Add t=4")
+                            self.treset = True
+                    # Clear carry flag
+                    elif self.add and self.stora:
+                        if self.t == 3:
+                            self.t = 4
+                            self.clc[0] = True
+                            #print(self.data_bus)
+                        elif self.t == 4:
+                            self.clc[0] = False
                             self.treset = True
 
                     elif self.sub and self.immeda:
@@ -1325,12 +1353,14 @@ class instruction_register_control:
                             self.lsp2[0] = False
                             self.ladd[0] = True
                             self.esp[0] = True
+                            self.clc[0] = True
 
                         elif self.t == 10:
                             # Write lower byte of IP to stack
                             self.t = 11
                             self.ladd[0] = False
                             self.esp[0] = False
+                            self.clc[0] = False
                             self.we[0] = True
                             self.eip[0] = True
 
@@ -1362,11 +1392,13 @@ class instruction_register_control:
                             self.lsp2[0] = False
                             self.ladd[0] = True
                             self.esp[0] = True
+                            self.clc[0] = True
                         elif self.t == 14:
                             # Write upper byte of IP to stack
                             self.t = 15
                             self.ladd[0] = False
                             self.esp[0] = False
+                            self.clc[0] = False
                             self.we[0] = True
                             self.eip_b[0] = True
 
@@ -1398,12 +1430,14 @@ class instruction_register_control:
                             self.lsp2[0] = False
                             self.ladd[0] = True
                             self.esp[0] = True
+                            self.clc[0] = True
 
                         elif self.t == 18:
                             # Set BP to SP
                             self.t = 19
                             self.ladd[0] = False
                             self.esp[0] = False
+                            self.clc[0] = False
                             self.lbpa[0] = True
                             self.esp[0] = True
 
@@ -1443,11 +1477,13 @@ class instruction_register_control:
                             self.lsp2[0] = False
                             self.ladd[0] = True
                             self.esp[0] = True
+                            self.clc[0] = True
                         elif self.t == 23:
                             # Save upper byte of BP to stack
                             self.t = 24
                             self.ladd[0] = False
                             self.esp[0] = False
+                            self.clc[0] = False
                             self.we[0] = True
                             self.ebp_b[0] = True
 
@@ -1667,6 +1703,7 @@ class instruction_register_control:
                             self.lsp2[0] = False
                             self.err[0] = True
                             self.lacc[0] = True
+                            self.clc[0] = True
 
                         elif self.t == 24:
                             # Restore B
@@ -1676,6 +1713,7 @@ class instruction_register_control:
                             self.lacc[0] = False
                             self.err_b[0] = True
                             self.lbuff[0] = True
+                            self.clc[0] = False
                         elif self.t == 25:
                             # Call finished
                             #print ("Restored B: " + hex(self.data_bus[0]))
@@ -1772,10 +1810,12 @@ class instruction_register_control:
                             self.lacc[0] = False
                             self.err[0] = True
                             self.lbuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 14:
                             # Call finished
                             self.lbuff[0] = False
                             self.err[0] = False
+                            self.clc[0] = False
                             self.treset = True
 
                     # Peek at A reg BP offset
@@ -1789,7 +1829,7 @@ class instruction_register_control:
                         elif self.t == 4:
                          # Save B
                             self.t = 5
-                            print("Saved A: " + hex(self.data_bus[0]))
+                            #print("Saved A: " + hex(self.data_bus[0]))
                             self.lrr2[0] = False
                             self.eacc[0] = False
                             self.lrr1[0] = True
@@ -1811,7 +1851,7 @@ class instruction_register_control:
                         elif self.t == 7:
                             # Add A and B
                             self.t = 8
-                            print("Offset: " + hex(self.data_bus[0]))
+                            #print("Offset: " + hex(self.data_bus[0]))
                             self.lbuff[0] = False
                             self.err_b[0] = False
                             self.lacc[0] = True
@@ -1877,10 +1917,12 @@ class instruction_register_control:
                             self.lacc[0] = False
                             self.err[0] = True
                             self.lbuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 15:
                             # Call finished
                             self.lbuff[0] = False
                             self.err[0] = False
+                            self.clc[0] = False
                             self.treset = True
                             
 
@@ -1984,10 +2026,12 @@ class instruction_register_control:
                             self.lacc[0] = False
                             self.err[0] = True
                             self.lbuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 15:
                             # Call finished
                             self.lbuff[0] = False
                             self.err[0] = False
+                            self.clc[0] = False
                             self.treset = True
                             #print("finish poke")
 
@@ -2058,10 +2102,12 @@ class instruction_register_control:
                             self.lacc[0] = False
                             self.err[0] = True
                             self.lbuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 11:
                             # Pop finished
                             self.lbuff[0] = False
                             self.err[0] = False
+                            self.clc[0] = False
                             self.treset = True
 
                     # Push A reg to SP
@@ -2140,10 +2186,12 @@ class instruction_register_control:
                             self.we[0] = False
                             self.err_b[0] = True
                             self.lbuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 12:
                             # Push finished
                             self.err_b[0] = False
                             self.lbuff[0] = False
+                            self.clc[0] = False
                             self.treset = True
 
                     # Push <immed> to SP
@@ -2222,10 +2270,12 @@ class instruction_register_control:
                             self.we[0] = False
                             self.err_b[0] = True
                             self.lbuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 12:
                             # Push finished
                             self.err_b[0] = False
                             self.lbuff[0] = False
+                            self.clc[0] = False
                             self.treset = True
 
         self.prevclk[0] = self.clk[0]
@@ -2240,10 +2290,10 @@ tr = temporary_register(lt1, lt2, lta, clk, et, et_b, data_bus, adr_bus)
 rr = temporary_register(lrr1, lrr2, lrra, clk, err, err_b, data_bus, adr_bus)
 sp = temporary_register(lsp1, lsp2, lspa, clk, esp, esp_b, data_bus, adr_bus)
 bp = temporary_register(lbp1, lbp2, lbpa, clk, ebp, ebp_b, data_bus, adr_bus)
-alu = arithmetic_logic_unit(clk, data_bus, acc_alu_out, buff_alu_out, sel, ealu, cf, zf, sf, of, xf)
+alu = arithmetic_logic_unit(clk, data_bus, acc_alu_out, buff_alu_out, sel, ealu, cf, zf, sf, of, xf, clc)
 acc = ab_register(lacc, eacc, clk, data_bus, acc_alu_out)
 buff = ab_register(lbuff, ebuff, clk, data_bus, buff_alu_out)
-irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf)
+irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf, clc)
 
 display = Graphics_Display(charMem, screenMem, 0, canvas, SCREEN_WIDTH, SCREEN_HEIGHT, PIXEL_SCALE)
 

@@ -5,51 +5,77 @@
 # a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z
 # 1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
 #
-def "a" 1
-def "b" 2
-def "c" 3
-def "d" 4
-def "e" 5
-def "f" 6
-def "g" 7
-def "h" 8
-def "i" 9
-def "j" A
-def "k" B
-def "l" C
-def "m" D
-def "n" E
-def "o" F
-def "p" 10
-def "q" 11
-def "r" 12
-def "s" 13
-def "t" 14
-def "u" 15
-def "v" 16
-def "w" 17
-def "x" 18
-def "y" 19
-def "z" 1A
-def "_" 20
+def @a 1
+def @b 2
+def @c 3
+def @d 4
+def @e 5
+def @f 6
+def @g 7
+def @h 8
+def @i 9
+def @j A
+def @k B
+def @l C
+def @m D
+def @n E
+def @o F
+def @p 10
+def @q 11
+def @r 12
+def @s 13
+def @t 14
+def @u 15
+def @v 16
+def @w 17
+def @x 18
+def @y 19
+def @z 1A
+def @_ 20
 
 # Location of next character to draw
 def cursor1 *0DFE
 def cursor2 *0DFF
-mov cursor1 20
-mov cursor2 00
+set cursor1 20
+set cursor2 00
 
-push "h"
-push "e"
-push "l"
-push "l"
-push "o"
-push "_"
-push "w"
-push "o"
-push "r"
-push "l"
-push "d"
+def a1 *0DE0
+def a2 *0DE1
+def b1 *0DE2
+def b2 *0DE3
+def o1 *0DE4
+def o2 *0DE5
+
+set a1 FE
+set a2 03
+set b1 02
+set b2 04
+
+clc
+mov ar a1
+mov br b1
+add br
+mov o1 ar
+mov ar a2
+mov br b2
+add br
+mov o2 ar
+mov ar 1
+add 1
+io ar
+
+
+push @h
+push @e
+push @l
+push @l
+push @o
+push @_
+push @w
+push @o
+push @r
+push @l
+push @d
 push B
 
 call print
@@ -71,7 +97,7 @@ mov ar FD
 sub br
 # Get character
 peek ar
-io ar
+#io ar
 halt
 
 #mov ar h
