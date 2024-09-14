@@ -34,6 +34,8 @@ if __name__ == "__main__":
 output = ""
 
 CODE_START_LOC = 0x100
+VARS_START_LOC = 0xA00
+varOffset = 0
 
 cmdNum = CODE_START_LOC
 lowestSet = -1
@@ -42,6 +44,9 @@ cmdBytes = []
 expectArgs = 0
 
 hexChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+
+charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' '],
+             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20]]
 
 locVars = [[], []]
 defVars = [[], []]
@@ -124,16 +129,41 @@ for line in range(len(codeParts)):
                 if (not (ops[1] in defVars[0])):
                     if "." not in ops[1]:
                         if "*" not in ops[1]:
-                            #print (defVars)
-                            defVars[0].append(ops[1])
-                            defVars[1].append(str(ops[2]))
-                            totalVars.append(ops[1])
+                                #print (defVars)
+                                defVars[0].append(ops[1])
+                                defVars[1].append(str(ops[2]))
+                                totalVars.append(ops[1])
                         else:
                             throwError("Invalid character '*' in DEF variable: " + ops[1], line)
                     else:
                          throwError("Invalid character '.' in DEF variable: " + ops[1], line)
                 else:
                     throwError("More than one DEF variable given same name: " + ops[1], line)
+            elif (ops[0] == "str"):
+                if(ops[2][0] == '"' and ops[-1][-1] == '"'):
+                    #print("Char var")
+                    defVars[0].append(ops[1])
+                    defVars[1].append("*" + str(hex(VARS_START_LOC + varOffset)).replace("0x", ""))
+                    defVars[0].append(ops[1] + "1")
+                    defVars[1].append(str(hex((VARS_START_LOC + varOffset) & 0xFF)).replace("0x", ""))
+                    defVars[0].append(ops[1] + "2")
+                    defVars[1].append(str(hex(((VARS_START_LOC + varOffset) & 0xFF00) >> 8)).replace("0x", ""))
+
+                    string = " ".join(ops[2:])
+                    for char in string[1:-1]:
+                        #print(charCodes[1][charCodes[0].index(char)])
+                        output += gen_cmd_file(str(hex(charCodes[1][charCodes[0].index(char)])).replace("0x", ""), VARS_START_LOC + varOffset)
+                        if (not (VARS_START_LOC + varOffset in setVars)):
+                            setVars.append(VARS_START_LOC + varOffset)
+                        else:
+                            throwError("Multiple SET commands to same location", line)
+                        varOffset += 1
+                    output += gen_cmd_file("00", VARS_START_LOC + varOffset)
+                    varOffset += 1
+                    totalVars.append(ops[1])
+                else:
+                    throwError("String variable must start and end with double quote", line)
+        #print(output)
 
 
 
@@ -614,11 +644,13 @@ for line in range(len(codeParts)):
                 #else:
                 #    throwError("More than one variable given same name: " + ops[1], line)
 
+            elif (ops[0] == "str"):
+                expectArgs = 3
             else:
                 throwError("Invalid ops[0]: " + ops[0], line)
 
 
-            if (not((ops[0] == "set") or (ops[0] == "loc") or (ops[0] == "def") or (ops[0] == "here"))):
+            if (not((ops[0] == "set") or (ops[0] == "loc") or (ops[0] == "def") or (ops[0] == "here") or (ops[0] == "str"))):
                 if (cmdNum in setVars):
                     throwError("Compiled code overwrote SET on cmdNum: " + str(cmdNum), line)
                 if (len(lineParts) != expectArgs):
@@ -657,6 +689,7 @@ for locVar in range(len(locVars[0])):
 
 print
 print("Compilation success.")
+#print(defVars)
 #print
 #print(output)
 f = open("compiled_output.txt", "w")

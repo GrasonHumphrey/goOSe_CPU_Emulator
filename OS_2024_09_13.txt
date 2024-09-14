@@ -1,5 +1,4 @@
 # Text to code converter
-
 def @a 1
 def @b 2
 def @c 3
@@ -39,35 +38,12 @@ set cursor2 20
 def text1 $02
 def text2 $03
 
-def helloworld1 00
-def helloworld2 0A
-set *A00 @h
-set *A01 @e
-set *A02 @l
-set *A03 @l
-set *A04 @o
-set *A05 @_
-set *A06 @w
-set *A07 @o
-set *A08 @r
-set *A09 @l
-set *A0A @d
-set *A0B 00
+str hw "hello world"
+str name "grason"
 
-def name1 0C
-def name2 0A
-set *A0C @g
-set *A0D @r
-set *A0E @a
-set *A0F @s
-set *A10 @o
-set *A11 @n
-set *A12 00
-
-
-mov ar helloworld1
+mov ar hw1
 mov text1 ar
-mov ar helloworld2
+mov ar hw2
 mov text2 ar
 call printstr
 
@@ -80,10 +56,11 @@ mov text2 ar
 call printstr
 
 call newline
+call newline
 
-mov ar @j
+mov ar @y
 call printchar
-mov ar @a
+mov ar @e
 call printchar
 halt
 
@@ -99,7 +76,6 @@ and br
 mov br cursor1
 add br
 add 1
-io ar
 mov cursor1 ar
 mov ar cursor2
 add 0
@@ -125,6 +101,7 @@ ret
 
 # PRINTSTR function
 # Prints the string at text1 and text2 to the screen
+# Final character of string must be 00
 loc printstr
 clc
 mov br 0
