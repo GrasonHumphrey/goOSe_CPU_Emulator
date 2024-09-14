@@ -65,7 +65,7 @@ ealu = [False]
 CHAR_MEM_SIZE = 0x1000
 SCREEN_MEM_SIZE = 0x2000
 RAM_SIZE_BYTES = 0x1000
-STACK_PTR_START = 0xE00
+STACK_PTR_START = 0xDFF
 
 CODE_START_LOC = 0x100
 
@@ -137,7 +137,7 @@ class instruction_pointer:
             self.data_bus[0] = self.adr[0] & 0x00FF
         if self.eip_b[0]:
             self.adr_bus[0] = self.adr[0]
-            self.data_bus[0] = self.adr[0] & 0xFF00
+            self.data_bus[0] = (self.adr[0] & 0xFF00) >> 8
 
         self.prevclk[0] = self.clk[0]
 
@@ -408,6 +408,9 @@ class arithmetic_logic_unit:
                 #print(self.data_bus[0])
                 # Zero flag is set if result is zero
                 self.zf[0] = self.data[0] == 0
+                #print("ALU data: " + hex(self.data[0]))
+                #print("ZF: " + str(self.zf[0]))
+                #print
                 # Sign flag is set if result is less than zero
                 if not overrideSF:
                     self.sf[0] = self.data[0] & 0xFF > 0x7F
@@ -1243,17 +1246,31 @@ class instruction_register_control:
                     # ADD Immediate
                     elif self.add and self.immeda:
                         if self.t == 3:
+                            # Save B reg
+                            self.t = 4
+                            self.ebuff[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            self.ebuff[0] = False
+                            self.lrr1[0] = False
                             self.et[0] = True
                             self.lbuff[0] = True
-                            self.t = 4
-                        elif self.t == 4:
+                            self.t = 5
+                        elif self.t == 5:
                             self.et[0] = False
                             self.lbuff[0] = False
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 0
-                            self.t = 5
-                        elif self.t == 5:
+                            self.t = 6
+                        elif self.t == 6:
+                            self.ealu[0] = False
+                            self.lacc[0] = False
+                            self.lbuff[0] = True
+                            self.err[0] = True
+                            self.sel[0] = 0
+                            self.t = 7
+                        elif self.t == 7:
                             self.ealu[0] = False
                             self.lacc[0] = False
                             self.treset = True
@@ -1285,13 +1302,13 @@ class instruction_register_control:
                             self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
-                            print("Add t=3")
+                            #print("Add t=3")
                             self.sel[0] = 0
                             #print(self.data_bus)
                         elif self.t == 4:
                             self.ealu[0] = False
                             self.lacc[0] = False
-                            print("Add t=4")
+                            #print("Add t=4")
                             self.treset = True
                     
                     # Clear carry flag
@@ -1392,11 +1409,13 @@ class instruction_register_control:
                             self.lip[0] = False
                     elif self.jz and self.mema:
                         # JZ (Jump if zero)
+                        #print("JZ")
                         if self.t == 3:
                             self.t = 4
                             if self.zf[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
+                                #print("Jump!")
                         elif self.t == 4:
                             self.treset = True
                             self.et[0] = False
@@ -1767,6 +1786,7 @@ class instruction_register_control:
                         elif self.t == 15:
                             # Increment lower byte of stack pointer in A
                             self.t = 16
+                            #print(hex(self.data_bus[0]))
                             self.we[0] = False
                             self.eip_b[0] = False
                             self.ealu[0] = True

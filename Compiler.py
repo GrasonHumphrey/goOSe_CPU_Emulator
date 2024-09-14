@@ -1,4 +1,5 @@
 import sys
+import re
 
 # All values must be in hex
 # # for comment
@@ -642,8 +643,14 @@ for line in range(len(codeParts)):
 
 
 for locVar in range(len(locVars[0])):
-    output = output.replace(locVars[0][locVar] + ".1", locVars[1][locVar][2:4])
-    output = output.replace(locVars[0][locVar] + ".2", locVars[1][locVar][0:2])
+    #print(str(output))
+    #output = output.replace(locVars[0][locVar] + ".1", locVars[1][locVar][2:4])
+    #output = output.replace(locVars[0][locVar] + ".2", locVars[1][locVar][0:2])
+    # Use regex to only replace whole word
+    output = re.sub(r"\b%s\b" % locVars[0][locVar] + ".1" , locVars[1][locVar][2:4], output)
+    output = re.sub(r"\b%s\b" % locVars[0][locVar] + ".2" , locVars[1][locVar][0:2], output)
+    #print(str(output))
+    #print()
 
 
 

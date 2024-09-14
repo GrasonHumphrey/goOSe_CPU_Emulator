@@ -57,7 +57,7 @@ set *A07 @o
 set *A08 @r
 set *A09 @l
 set *A0A @d
-set *A0B FF
+set *A0B 00
 
 def name1 0C
 def name2 0A
@@ -68,7 +68,7 @@ set *A0F @a
 set *A10 @s
 set *A11 @o
 set *A12 @n
-set *A13 FF
+set *A13 00
 
 
 mov ar helloworld1
@@ -76,25 +76,33 @@ mov text1 ar
 mov ar helloworld2
 mov text2 ar
 call print
+io ar
 
 mov ar name1
 mov text1 ar
 mov ar name2
 mov text2 ar
 call print
-
+halt
 
 loc print
 mov br 0
-loc startprint
 
+loc startprint
+clc
 ldz text1
-inc ar
+add 0
 jz endprint
-dec ar
 stz cursor1
 inc br
 jmp startprint
 
 loc endprint
+mov ar cursor1
+add br
+mov cursor1 ar
+mov ar cursor2
+add 0
+mov cursor2 ar
+
 ret
