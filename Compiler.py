@@ -435,8 +435,9 @@ for line in range(len(codeParts)):
 
             elif (ops[0] == "not"):
                 # Bitwise NOT
-                expectArgs = 1
-                cmdBytes.append("24")
+                expectArgs = 2
+                if (ops[1] == "ar"):
+                    cmdBytes.append("24")
 
             elif (ops[0] == "dec"):
                 expectArgs = 2

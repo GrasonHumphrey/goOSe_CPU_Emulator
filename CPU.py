@@ -664,7 +664,8 @@ class instruction_register_control:
                 (self.jmp and self.storb) or
                 (self.jmp and self.deca) or
                 (self.jmp and self.aux) or
-                (self.add and self.stora))
+                (self.add and self.stora) or 
+                (self.jmp and self.decb))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -688,8 +689,7 @@ class instruction_register_control:
                 (self.log and self.swp) or
                 (self.jmp and self.shl) or
                 (self.jmp and self.shr) or
-                (self.jmp and self.swp) or 
-                (self.jmp and self.decb))
+                (self.jmp and self.swp))
 
     def Push(self, initTime):
         print("push")
@@ -2573,6 +2573,7 @@ class instruction_register_control:
                             self.lbuff[0] = False
                             self.clc[0] = False
                             self.treset = True
+                            #print("Finish reg push")
 
                     # Push <immed> to SP
                     elif self.jmp and self.swp:

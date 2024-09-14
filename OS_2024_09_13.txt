@@ -1,10 +1,5 @@
 # Text to code converter
-# A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z
-# 1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
-#
-# a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z
-# 1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
-#
+
 def @a 1
 def @b 2
 def @c 3
@@ -61,35 +56,80 @@ set *A0B 00
 
 def name1 0C
 def name2 0A
-set *A0C @_
-set *A0D @g
-set *A0E @r
-set *A0F @a
-set *A10 @s
-set *A11 @o
-set *A12 @n
-set *A13 00
+set *A0C @g
+set *A0D @r
+set *A0E @a
+set *A0F @s
+set *A10 @o
+set *A11 @n
+set *A12 00
 
 
 mov ar helloworld1
 mov text1 ar
 mov ar helloworld2
 mov text2 ar
-call print
-io ar
+call printstr
+
+call newline
 
 mov ar name1
 mov text1 ar
 mov ar name2
 mov text2 ar
-call print
+call printstr
+
+call newline
+
+mov ar @j
+call printchar
+mov ar @a
+call printchar
 halt
 
-loc print
+
+# NEWLINE function
+# Moves cursor to beginning of next line
+loc newline
+clc
+mov ar cursor1
+not ar
+mov br 1F
+and br
+mov br cursor1
+add br
+add 1
+io ar
+mov cursor1 ar
+mov ar cursor2
+add 0
+mov cursor2 ar
+ret
+
+
+# PRINTCHAR function
+# Prints a single character to the string passed in A reg
+loc printchar
+clc
+mov br 0
+stz cursor1
+
+mov ar cursor1
+inc ar
+mov cursor1 ar
+mov ar cursor2
+add 0
+mov cursor2 ar
+ret
+
+
+# PRINTSTR function
+# Prints the string at text1 and text2 to the screen
+loc printstr
+clc
 mov br 0
 
 loc startprint
-clc
 ldz text1
 add 0
 jz endprint
@@ -104,5 +144,4 @@ mov cursor1 ar
 mov ar cursor2
 add 0
 mov cursor2 ar
-
 ret
