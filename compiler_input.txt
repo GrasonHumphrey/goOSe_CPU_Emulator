@@ -38,30 +38,33 @@ set cursor2 20
 def text1 $02
 def text2 $03
 
-str hw "hello world"
-str name "grason"
+str s_title "         g cpu emulator         "
+str s_cmd "cmd>"
 
-mov ar hw1
+mov ar s_title1
 mov text1 ar
-mov ar hw2
+mov ar s_title2
 mov text2 ar
 call printstr
 
 call newline
 
-mov ar name1
+mov ar s_cmd1
 mov text1 ar
-mov ar name2
+mov ar s_cmd2
 mov text2 ar
 call printstr
 
 call newline
+
+mov ar 7
+call printchar
+
 call newline
 
-mov ar @y
-call printchar
-mov ar @e
-call printchar
+mov ar 4B
+call printhex
+
 halt
 
 
@@ -80,6 +83,78 @@ mov cursor1 ar
 mov ar cursor2
 add 0
 mov cursor2 ar
+ret
+
+
+# PRINTHEX function
+# Prints a hex byte passed in the A reg
+loc printhex
+push ar
+
+mov br F0
+and br
+io ar
+shr
+shr
+shr
+shr
+io ar
+clc
+mov br A
+sub br
+io ar
+jm printhex_num1
+
+# Print letter
+add 2
+jmp printhex_end1
+
+loc printhex_num1
+# Print number
+clc
+add 3B
+
+loc printhex_end1
+mov br 0
+stz cursor1
+
+pop
+
+clc
+mov br 0F
+and br
+
+mov br A
+sub br
+jm printhex_num2
+
+# Print letter
+add 2
+jmp printhex_end2
+
+loc printhex_num2
+# Print number
+clc
+add 3B
+
+loc printhex_end2
+mov br 1
+stz cursor1
+
+mov ar cursor1
+add 2
+mov cursor1 ar
+mov ar cursor2
+add 0
+mov cursor2 ar
+
+ret
+
+
+# PRINTMEM function
+# Prints a hex byte pointed to by text1 and text2
+loc printmem
+
 ret
 
 
@@ -102,6 +177,7 @@ ret
 # PRINTSTR function
 # Prints the string at text1 and text2 to the screen
 # Final character of string must be 00
+# Max string length is 255 characters
 loc printstr
 clc
 mov br 0

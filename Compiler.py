@@ -45,8 +45,8 @@ expectArgs = 0
 
 hexChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
 
-charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' '],
-             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20]]
+charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ',  '>'],
+             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20,0x3E]]
 
 locVars = [[], []]
 defVars = [[], []]
@@ -149,8 +149,12 @@ for line in range(len(codeParts)):
                     defVars[0].append(ops[1] + "2")
                     defVars[1].append(str(hex(((VARS_START_LOC + varOffset) & 0xFF00) >> 8)).replace("0x", ""))
 
-                    string = " ".join(ops[2:])
-                    for char in string[1:-1]:
+                    firstQuote = codeParts[line].index('"')
+                    secondQuote = codeParts[line].index('"', firstQuote+1)
+                    #print(codeParts[line][firstQuote+1:secondQuote])
+                    string = codeParts[line][firstQuote+1:secondQuote]
+                    #string = " ".join(ops[2:])
+                    for char in string:
                         #print(charCodes[1][charCodes[0].index(char)])
                         output += gen_cmd_file(str(hex(charCodes[1][charCodes[0].index(char)])).replace("0x", ""), VARS_START_LOC + varOffset)
                         if (not (VARS_START_LOC + varOffset in setVars)):

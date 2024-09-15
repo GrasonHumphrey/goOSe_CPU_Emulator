@@ -797,8 +797,9 @@ class instruction_register_control:
                         #print("Reset count")
 
                     # Execute
-                    if self.mov and self.immeda:
-                        # MOV into A Immediate operation
+
+                    # MOV into A Immediate operation
+                    if self.mov and self.immeda: 
                         #print ("mov")
                         if self.t == 3:
                             self.et[0] = True
@@ -808,8 +809,10 @@ class instruction_register_control:
                             self.et[0] = False
                             self.lacc[0] = False
                             self.treset = True
+                    
+                    # MOV into B Immediate operation
                     elif self.mov and self.immedb:
-                        # MOV into B Immediate operation
+                        
                         if self.t == 3:
                             self.et[0] = True
                             self.lbuff[0] = True
@@ -837,8 +840,9 @@ class instruction_register_control:
                             self.eacc[0] = False
                             self.we[0] = False
                     
+                    # MOV B into MEM
                     elif self.mov and self.storb:
-                        # MOV B into MEM
+                        
                         if self.t == 3:
                             self.t = 4
                             self.et[0] = True
@@ -879,8 +883,9 @@ class instruction_register_control:
                             #global totalCycles
                             #print("Finish MOV MEM into A")
                     
+                    # MOV MEM into B
                     elif self.mov and self.memb:
-                        # MOV MEM into B
+                        
                         if self.t == 3:
                             self.t = 4
                             self.et[0] = True
@@ -1068,11 +1073,13 @@ class instruction_register_control:
                             self.t = 4
                             self.eacc[0] = True
                             self.lrr1[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                             # Load 0 into T2
                             self.t = 5
                             self.eacc[0] = False
                             self.lrr1[0] = False
+                            self.clc[0] = False
                             self.lt2[0] = True
                             self.data_bus[0] = 0x0
                         elif self.t == 5:
@@ -1160,14 +1167,14 @@ class instruction_register_control:
                         if self.t == 3:
                             # Load 0 into T2
                             self.t = 4
-                            self.eacc[0] = False
-                            self.lrr1[0] = False
+                            self.clc[0] = True
                             self.lt2[0] = True
                             self.data_bus[0] = 0x0
                         elif self.t == 4:
                             # Load temp into address reg
                             self.t = 5
                             self.lt2[0] = False
+                            self.clc[0] = False
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 5:
@@ -1264,6 +1271,7 @@ class instruction_register_control:
                             self.sel[0] = 0
                             self.t = 6
                         elif self.t == 6:
+                            # Restore B reg
                             self.ealu[0] = False
                             self.lacc[0] = False
                             self.lbuff[0] = True
@@ -1276,8 +1284,9 @@ class instruction_register_control:
                             self.treset = True
                             #print("Finish ADD Immediate")
                     
+                    # ADD MEM
                     elif self.add and self.mema:
-                        # ADD MEM
+                        
                         if self.t == 3:
                             self.t = 4
                             self.et[0] = True
@@ -1296,8 +1305,9 @@ class instruction_register_control:
                             self.lacc[0] = True
                             self.sel[0] = 0
                     
+                    # ADD B to A
                     elif self.add and self.immedb:
-                        # ADD B to A
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1321,26 +1331,43 @@ class instruction_register_control:
                             self.clc[0] = False
                             self.treset = True
 
+                    # SUB Immediate
                     elif self.sub and self.immeda:
-                        # SUB Immediate
                         if self.t == 3:
+                            # Save B reg
+                            self.t = 4
+                            self.ebuff[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
                             self.et[0] = True
                             self.lbuff[0] = True
-                            self.t = 4
-                        elif self.t == 4:
+                            self.ebuff[0] = False
+                            self.lrr1[0] = False
+                            self.t = 5
+                        elif self.t == 5:
                             self.et[0] = False
                             self.lbuff[0] = False
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 1
-                            self.t = 5
-                        elif self.t == 5:
+                            self.t = 6
+                        elif self.t == 6:
+                            # Restore B reg
                             self.ealu[0] = False
                             self.lacc[0] = False
+                            self.lbuff[0] = True
+                            self.err[0] = True
+                            self.sel[0] = 0
+                            self.t = 7
+                        elif self.t == 7:
+                            self.lbuff[0] = False
+                            self.err[0] = False
                             self.treset = True
                             #print("Finish SUB immediate")
+                    
+                    # SUB MEM
                     elif self.sub and self.mema:
-                        # SUB MEM
+                        
                         #print("sub mem")
                         if self.t == 3:
                             self.t = 4
@@ -1359,8 +1386,10 @@ class instruction_register_control:
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 1
+                    
+                    # SUB B from A
                     elif self.sub and self.immedb:
-                        # SUB B from A
+                        
                         #print("Sub A-B")
                         if self.t == 3:
                             self.t = 4
@@ -1372,8 +1401,9 @@ class instruction_register_control:
                             self.lacc[0] = False
                             self.treset = True
 
+                    # Swap A and B
                     elif self.swp and self.mov:
-                        # Swap A and B
+                        
                         if self.t == 3:
                             #print("Start SWP")
                             self.t = 4
@@ -1499,8 +1529,9 @@ class instruction_register_control:
                             self.et[0] = False
                             self.lip[0] = False
 
+                    # SHL (Left shift)
                     elif self.log and self.shl:
-                        # SHL (Left shift)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1510,8 +1541,10 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lacc[0] = False
+                         
+                    # SHR (Right shift)
                     elif self.log and self.shr:
-                        # SHR (Right shift)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1521,8 +1554,10 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lacc[0] = False
+                    
+                    # INC A (Increment A)
                     elif self.log and self.inca:
-                        # INC A (Increment A)
+                       
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1532,8 +1567,10 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lacc[0] = False
+                   
+                    # DEC A (Decrement A)
                     elif self.log and self.deca:
-                        # DEC A (Decrement A)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1543,8 +1580,10 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lacc[0] = False
+                    
+                    # INC B (Increment B)
                     elif self.log and self.incb:
-                        # INC B (Increment B)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1554,8 +1593,10 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lbuff[0] = False
+                    
+                    # DEC B (Decrement B)
                     elif self.log and self.decb:
-                        # DEC B (Decrement B)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1566,8 +1607,10 @@ class instruction_register_control:
                             self.ealu[0] = False
                             self.lbuff[0] = False
                             #print("FINISH DEC B")
+                    
+                    # AND B (AND A and B)
                     elif self.log and self.mema:
-                        # AND B (AND A and B)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1577,25 +1620,43 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lacc[0] = False
+                    
+                    # AND IMMED (AND A and immediate value)
                     elif self.log and self.stora:
-                        # AND IMMED (AND A and immediate value)
                         if self.t == 3:
+                        # Save B reg
                             self.t = 4
-                            self.et[0] = True
-                            self.lbuff[0] = True
+                            self.ebuff[0] = True
+                            self.lrr1[0] = True
                         elif self.t == 4:
                             self.t = 5
+                            self.ebuff[0] = False
+                            self.lrr1[0] = False
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 5:
+                            self.t = 6
                             self.et[0] = False
                             self.lbuff[0] = False
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 8
-                        elif self.t == 5:
-                            self.treset = True
+                        elif self.t == 6:
+                            # Restore B reg
                             self.ealu[0] = False
                             self.lacc[0] = False
+                            self.lbuff[0] = True
+                            self.err[0] = True
+                            self.sel[0] = 0
+                            self.t = 7
+                        elif self.t == 7:
+                            self.treset = True
+                            self.lbuff[0] = False
+                            self.err[0] = False
+                    
+                    # OR B (OR A and B)
                     elif self.log and self.memb:
-                        # OR B (OR A and B)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1605,25 +1666,42 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lacc[0] = False
+                    
+                    # OR IMMED (OR A and immediate value)
                     elif self.log and self.storb:
-                        # OR IMMED (OR A and immediate value)
                         if self.t == 3:
+                            # Save B reg
                             self.t = 4
-                            self.et[0] = True
-                            self.lbuff[0] = True
+                            self.ebuff[0] = True
+                            self.lrr1[0] = True
                         elif self.t == 4:
                             self.t = 5
+                            self.ebuff[0] = False
+                            self.lrr1[0] = False
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 5:
+                            self.t = 6
                             self.et[0] = False
                             self.lbuff[0] = False
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 9
-                        elif self.t == 5:
-                            self.treset = True
+                        elif self.t == 6:
+                            # Restore B reg
                             self.ealu[0] = False
                             self.lacc[0] = False
+                            self.lbuff[0] = True
+                            self.err[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 7:
+                            self.treset = True
+                            self.lbuff[0] = False
+                            self.err[0] = False
+                    
+                    # XOR B (XOR A and B)
                     elif self.log and self.immeda:
-                        # XOR B (XOR A and B)
+                        
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1633,27 +1711,44 @@ class instruction_register_control:
                             self.treset = True
                             self.ealu[0] = False
                             self.lacc[0] = False
+                    
+                    # XOR IMMED (XOR A and immediate value)
                     elif self.log and self.swp:
-                        # XOR IMMED (XOR A and immediate value)
                         if self.t == 3:
+                            # Save B reg
                             self.t = 4
-                            self.et[0] = True
-                            self.lbuff[0] = True
-                            #print("XOR enable lbuff")
+                            self.ebuff[0] = True
+                            self.lrr1[0] = True
                         elif self.t == 4:
                             self.t = 5
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                            self.ebuff[0] = False
+                            self.lrr1[0] = False
+                            #print("XOR enable lbuff")
+                        elif self.t == 5:
+                            self.t = 6
                             self.et[0] = False
                             self.lbuff[0] = False
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 0xA
-                        elif self.t == 5:
-                            self.treset = True
+                        elif self.t == 6:
+                            # Restore B reg
                             self.ealu[0] = False
                             self.lacc[0] = False
+                            self.lbuff[0] = True
+                            self.err[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 7:
+                            self.treset = True
+                            self.lbuff[0] = False
+                            self.err[0] = False
                             #print("Finish XOR immed")
+                    
+                     # NOT (NOT A)
                     elif self.log and self.immedb:
-                        # NOT (NOT A)
+                       
                         if self.t == 3:
                             self.t = 4
                             self.ealu[0] = True
@@ -1664,14 +1759,17 @@ class instruction_register_control:
                             self.ealu[0] = False
                             self.lacc[0] = False
 
+                    # IO A
                     elif self.io and self.mema:
-                        # IO A
+                        
                         if self.t == 3:
                             self.treset = True
                             print("Clock cycles: " + str(totalCycles))
                             print("A REG: " + str(format(acc.data[0], '#x')))
+                    
+                    # IO B
                     elif self.io and self.memb:
-                        # IO B
+                        
                         if self.t == 3:
                             self.treset = True
                             print("Clock cycles: " + str(totalCycles))
@@ -1684,11 +1782,13 @@ class instruction_register_control:
                             self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                             # Save B
                             self.t = 5
                             self.lrr1[0] = False
                             self.eacc[0] = False
+                            self.clc[0] = False
                             self.lrr2[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
@@ -1906,12 +2006,14 @@ class instruction_register_control:
                             self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                             # Save B
                             self.t = 5
                             #print ("Saved A: " + hex(self.data_bus[0]))
                             self.lrr1[0] = False
                             self.eacc[0] = False
+                            self.clc[0] = False
                             self.lrr2[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
@@ -2109,11 +2211,13 @@ class instruction_register_control:
                             self.t = 4
                             self.lrr1[0] = True
                             self.ebuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                             # Load low byte of base pointer into A
                             self.t = 5
                             self.lrr1[0] = False
                             self.ebuff[0] = False
+                            self.clc[0] = False
                             self.lacc[0] = True
                             self.ebp[0] = True
                         elif self.t == 5:
@@ -2207,12 +2311,14 @@ class instruction_register_control:
                             self.t = 4
                             self.lrr2[0] = True
                             self.eacc[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                          # Save B
                             self.t = 5
                             #print("Saved A: " + hex(self.data_bus[0]))
                             self.lrr2[0] = False
                             self.eacc[0] = False
+                            self.clc[0] = False
                             self.lrr1[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
@@ -2313,12 +2419,14 @@ class instruction_register_control:
                             self.t = 4
                             self.eacc[0] = True
                             self.lrr2[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                          # Save B to RR1
                             #print("Saved A: " + hex(self.data_bus[0]))
                             self.t = 5
                             self.eacc[0] = False
                             self.lrr2[0] = False
+                            self.clc[0] = False
                             self.lrr1[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
@@ -2422,11 +2530,13 @@ class instruction_register_control:
                             self.t = 4
                             self.lrr1[0] = True
                             self.ebuff[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                             # Load stack pointer into address reg and A
                             self.t = 5
                             self.lrr1[0] = False
                             self.ebuff[0] = False
+                            self.clc[0] = False
                             self.lacc[0] = True
                             self.esp[0] = True
                             self.ladd[0] = True
@@ -2497,11 +2607,13 @@ class instruction_register_control:
                             self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                          # Save B
                             self.t = 5
                             self.lrr1[0] = False
                             self.eacc[0] = False
+                            self.clc[0] = False
                             self.lrr2[0] = True
                             self.ebuff[0] = True
 
@@ -2552,18 +2664,20 @@ class instruction_register_control:
                             self.esp[0] = True
                         
                         elif self.t == 10:
-                            # Write saved A in RR1 to SP
+                            # Write saved A in RR1 to SP and restore A
                             self.t = 11
                             self.ladd[0] = False
                             self.esp[0] = False
                             self.err[0] = True
                             self.we[0] = True
+                            self.lacc[0] = True
                         
                         elif self.t == 11:
                             # Restore B
                             self.t = 12
                             self.err[0] = False
                             self.we[0] = False
+                            self.lacc[0] = False
                             self.err_b[0] = True
                             self.lbuff[0] = True
                             self.clc[0] = True
@@ -2582,11 +2696,13 @@ class instruction_register_control:
                             self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
+                            self.clc[0] = True
                         elif self.t == 4:
                          # Save B
                             self.t = 5
                             self.lrr1[0] = False
                             self.eacc[0] = False
+                            self.clc[0] = False
                             self.lrr2[0] = True
                             self.ebuff[0] = True
 
@@ -2643,20 +2759,27 @@ class instruction_register_control:
                             self.esp[0] = False
                             self.et[0] = True
                             self.we[0] = True
-                        
                         elif self.t == 11:
-                            # Restore B
+                            # Restore A
                             self.t = 12
                             self.et[0] = False
                             self.we[0] = False
+                            self.err[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        
+                        elif self.t == 12:
+                            # Restore B
+                            self.t = 13
+                            self.err[0] = False
+                            self.lacc[0] = False
+                            self.clc[0] = False
                             self.err_b[0] = True
                             self.lbuff[0] = True
-                            self.clc[0] = True
-                        elif self.t == 12:
+                        elif self.t == 13:
                             # Push finished
                             self.err_b[0] = False
                             self.lbuff[0] = False
-                            self.clc[0] = False
                             self.treset = True
 
         self.prevclk[0] = self.clk[0]
