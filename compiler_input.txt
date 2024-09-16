@@ -26,6 +26,18 @@ def @x 18
 def @y 19
 def @z 1A
 def @_ 20
+def @0 30
+def @1 31
+def @2 32
+def @3 33
+def @4 34
+def @5 35
+def @6 36
+def @7 37
+def @8 38
+def @9 39
+def @: 3A
+def @as 2A
 
 # Location of next character to draw
 def cursor1 $00
@@ -75,7 +87,48 @@ mov ar 8
 mov br @_
 call printmem
 
+call newline
+
+mov ar A
+call dispmem
+
 halt
+
+####### DISPMEM function #######
+# Display memory with locations printed
+# Arguments:
+# Ar: Number of 8-byte blocks to print
+# $text: Starting location to print from
+loc dispmem
+push ar
+
+loc dispmem_start
+dec ar
+jm dispmem_end
+poke 1
+
+mov ar text2
+call printhex
+mov ar text1
+call printhex
+mov ar @:
+call printchar
+mov ar 8
+mov br @_
+call printmem
+call newline
+mov ar text1
+add 8
+mov text1 ar
+mov ar text2
+add 0
+mov text2 ar
+peek 1
+jmp dispmem_start
+
+loc dispmem_end
+ret
+
 
 ####### NEWLINE function #######
 # Moves cursor to beginning of next line
@@ -189,13 +242,10 @@ call printhex
 
 peek 2
 add 0
-io ar
 jz printmem_space
-io ar
 call printchar
 
 loc printmem_space
-io br
 peek 3
 swp
 inc br
