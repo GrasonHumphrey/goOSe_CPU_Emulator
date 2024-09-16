@@ -62,7 +62,7 @@ call printchar
 
 call newline
 
-mov ar 4B
+mov ar 4A
 call printhex
 
 call newline
@@ -73,8 +73,6 @@ mov ar 01
 mov text2 ar
 mov ar 10
 call printmem
-
-io br
 
 halt
 
@@ -113,13 +111,13 @@ sub br
 jm printhex_num1
 
 # Print letter
-add 2
+add 1
 jmp printhex_end1
 
 loc printhex_num1
 # Print number
 clc
-add 3B
+add 3A
 
 loc printhex_end1
 mov br 0
@@ -136,13 +134,13 @@ sub br
 jm printhex_num2
 
 # Print letter
-add 2
+add 1
 jmp printhex_end2
 
 loc printhex_num2
 # Print number
 clc
-add 3B
+add 3A
 
 loc printhex_end2
 mov br 1
@@ -181,7 +179,6 @@ peek 1
 jmp printmem_start
 
 loc printmem_end
-io ar
 ret
 
 

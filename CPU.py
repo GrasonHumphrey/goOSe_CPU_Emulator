@@ -331,10 +331,15 @@ class arithmetic_logic_unit:
             if self.sel[0] == 0x1:
                 # SUBTRACT
                 result = (self.alu_in_a[0] - self.alu_in_b[0])
-                if self.cf:
-                    result -= 1
                 self.data[0] = result & 0xFF
                 if self.ealu[0]:
+                    if self.cf[0]:
+                        result -= 1
+                        self.data[0] = result & 0xFF
+                    #print("SUB AR: " + hex(self.alu_in_a[0]))
+                    #print("SUB BR: " + hex(self.alu_in_b[0]))
+                    #print("SUB Incoming CF: " + str(self.cf[0]))
+                    #print("SUB result: " + hex(self.data[0]))
                     # Calculate carry and overflow flags
                     # Set overflow flag if result is incorrect for signed arithmetic
                     #self.of[0] = (~(self.data[0]&0x80) and (self.alu_in_a[0]&0x80) and (self.alu_in_b[0]&0x80)) or ((self.data[0]&0x80) and ~(self.alu_in_a[0]&0x80) and ~(self.alu_in_b[0]&0x80))
@@ -416,6 +421,7 @@ class arithmetic_logic_unit:
                 # Sign flag is set if result is less than zero
                 if not overrideSF:
                     self.sf[0] = self.data[0] & 0xFF > 0x7F
+                    #print("EALU SF: " + str(self.sf[0]))
 
 class instruction_register_control:
     def __init__(self, clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf, clc):
@@ -820,6 +826,7 @@ class instruction_register_control:
                             self.lbuff[0] = True
                             self.t = 4
                         elif self.t == 4:
+                            #print("CF after MOV into B: " + str(self.cf[0]))
                             self.et[0] = False
                             self.lbuff[0] = False
                             self.treset = True
@@ -1399,6 +1406,7 @@ class instruction_register_control:
                             self.lacc[0] = True
                             self.sel[0] = 1
                         elif self.t == 4:
+                            #print("CF after sub: " + str(self.cf[0]))
                             self.ealu[0] = False
                             self.lacc[0] = False
                             self.treset = True
@@ -1468,6 +1476,8 @@ class instruction_register_control:
                         # JM (Jump if minus)
                         if self.t == 3:
                             self.t = 4
+                            #print("Jump if minus check SF: " + str(self.sf[0]))
+                            #print("Carry flag: " + str(self.cf[0]))
                             if self.sf[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
