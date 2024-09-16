@@ -71,7 +71,8 @@ mov ar 00
 mov text1 ar
 mov ar 01
 mov text2 ar
-mov ar 10
+mov ar 8
+mov br @_
 call printmem
 
 halt
@@ -123,7 +124,7 @@ loc printhex_end1
 mov br 0
 stz cursor1
 
-pop
+peek 1
 
 clc
 mov br 0F
@@ -159,8 +160,21 @@ ret
 ####### PRINTMEM function #######
 # Prints Ar hex bytes pointed to by text1 and text2
 # Max number of bytes is 255
+# Arguments:
+# $text: Location of memory to print
+# Ar: Number of bytes to print
+# Br: Character to print between bytes, 00 for no space
+#
+# BP1: Number of bytes to print
+# BP2: Character to print between bytes, 00 for no space
+# BP3: Number of bytes that have been printed
+
 loc printmem
 push ar
+swp
+push ar
+push ar
+swp
 mov br 0
 
 loc printmem_start
@@ -169,10 +183,20 @@ sub br
 jz printmem_end
 ldz text1
 swp
-push ar
+poke 3
 swp
 call printhex
-pop
+
+peek 2
+add 0
+io ar
+jz printmem_space
+io ar
+call printchar
+
+loc printmem_space
+io br
+peek 3
 swp
 inc br
 peek 1
