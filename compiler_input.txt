@@ -71,7 +71,7 @@ mov ar 00
 mov text1 ar
 mov ar 01
 mov text2 ar
-mov ar 4
+mov ar 10
 call printmem
 
 io br

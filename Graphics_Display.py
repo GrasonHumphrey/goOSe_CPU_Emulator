@@ -11,6 +11,8 @@ class Graphics_Display:
         self.height = height
         self.pixelScale = pixelScale
         self.pixels = []
+        self.oldCharMem = []
+        self.oldScreenMem = []
         
         # Copy data from char ROM into charMem RAM
         data = array('B')
@@ -18,11 +20,13 @@ class Graphics_Display:
             data.fromfile(f, 0x1000)
         for i in range(0x1000):
             self.charMem[i] = data[i]
+            self.oldCharMem.append(data[i])
 
-        # Set screen mem to all char blanks
-        for i in range(0x400):
-            self.screenMem[i] = 0x60
-            #self.screenMem[i] = 0x03
+        if (self.mode == 0):
+            # Set screen mem to all char blanks
+            for i in range(0x400):
+                self.screenMem[i] = 0x60
+                self.oldScreenMem.append(0x60)
 
         # Create all pixels
         for i in range(0x400):
@@ -49,13 +53,17 @@ class Graphics_Display:
         if (self.mode == 0):
             # Character graphics mode
             for i in range(0x400):
-                charCode = self.screenMem[i]
-                if (charCode != 0x20 and charCode != 0x60):
-                    charLine = 0
-                    while (charLine < 8):
+                charCode = self.screenMem[i] 
+                charLine = 0
+                while (charLine < 8):
+                    if (charCode != self.oldScreenMem[i] or self.charMem[8 * charCode + charLine] != self.oldCharMem[8 * charCode + charLine]):
+                        # Only update pixel if either screen or character memory has been updated
+                        self.oldCharMem[8 * charCode + charLine] = self.charMem[8 * charCode + charLine]
+                        #print(hex(charCode))
                         for pixel in range(8):
                             if (self.is_bit_set(self.charMem[8 * charCode + charLine], 7-pixel)):
                                 self.canvas.itemconfig(self.pixels[i*64+charLine*8+pixel], fill="#0ff")
                             else:
                                 self.canvas.itemconfig(self.pixels[i*64+charLine*8+pixel], fill="#000")
-                        charLine += 1
+                    charLine += 1
+                self.oldScreenMem[i] = charCode
