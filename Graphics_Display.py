@@ -43,7 +43,7 @@ class Graphics_Display:
                         width=0)
                     self.pixels.append(rect)
                 charLine += 1
-        
+                
     def is_bit_set(self, x, n):
         #print(str(x & 1 << n != 0))
         return x & 1 << n != 0

@@ -3,6 +3,8 @@ import math
 import time
 from tkinter import *
 from Graphics_Display import Graphics_Display
+#import keyboard
+from pynput.keyboard import Key, Listener
 
 count = [False]
 lip = [False]
@@ -66,9 +68,15 @@ CHAR_MEM_SIZE = 0x1000
 SCREEN_MEM_SIZE = 0x2000
 RAM_SIZE_BYTES = 0x1000
 STACK_PTR_START = 0xDFF
+KEY_BUF_BASE = 0xDE0
+KEY_BUF_PTR_LOC = 0xDDE
 
 CODE_START_LOC = 0x100
 
+charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ',  '>'],
+             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20,0x3E]]
+
+charPressed = ''
 charMem = [0 for i in range(CHAR_MEM_SIZE)]
 screenMem = [0 for i in range(SCREEN_MEM_SIZE)]
 
@@ -152,6 +160,7 @@ class address_buffer:
         self.adr_bus = adr_bus
         self.data_bus = data_bus
         self.reset = reset
+
         self.memory = [0 for i in range(RAM_SIZE_BYTES)]
         self.adr = ['x']
         self.prevclk = [False]
@@ -162,6 +171,10 @@ class address_buffer:
         for line in lines:
             parts = line.split()
             self.memory[int(parts[0])] = int(parts[1], 16)
+
+        # Set up key buffer memory
+        self.memory[KEY_BUF_PTR_LOC] = KEY_BUF_BASE & 0x0F
+        self.memory[KEY_BUF_PTR_LOC+1] = (KEY_BUF_BASE & 0xF0) >> 8
 
         #print(self.memory)
 
@@ -2826,6 +2839,11 @@ class instruction_register_control:
         #self.SetOpcodes()
 
 
+def key_handler(key):
+    charCode = charCodes[1][charCodes[0].index(key.char)]
+    print(hex(charCode))
+    # TODO: Place keyboard inputs into the key buffer
+
 ip = instruction_pointer(count, lip, lip1, lip2, clk, eip, eip_b, reset, adr_bus, data_bus)
 ab = address_buffer(ladd, clk, we, ce, adr_bus, data_bus, reset)
 tr = temporary_register(lt1, lt2, lta, clk, et, et_b, data_bus, adr_bus)
@@ -2838,6 +2856,12 @@ buff = ab_register(lbuff, ebuff, clk, data_bus, buff_alu_out)
 irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf, clc)
 
 display = Graphics_Display(charMem, screenMem, 0, canvas, SCREEN_WIDTH, SCREEN_HEIGHT, PIXEL_SCALE)
+
+#with Listener(on_press = key_handler) as listener:   
+#    listener.join()
+
+listener = Listener(on_press=key_handler)
+listener.start()
 
 sp.adr[0] = STACK_PTR_START
 bp.adr[0] = STACK_PTR_START
@@ -2927,6 +2951,7 @@ def TestBench2():
         Toggle_Clk()
         if (totalCycles % 5000 == 0):
             display.update()
+            #key_handler()
             ws.update()
 
     endTime = time.time_ns()
