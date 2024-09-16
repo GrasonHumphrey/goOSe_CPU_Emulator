@@ -65,10 +65,20 @@ call newline
 mov ar 4B
 call printhex
 
+call newline
+
+mov ar 00
+mov text1 ar
+mov ar 01
+mov text2 ar
+mov ar 4
+call printmem
+
+io br
+
 halt
 
-
-# NEWLINE function
+####### NEWLINE function #######
 # Moves cursor to beginning of next line
 loc newline
 clc
@@ -86,23 +96,20 @@ mov cursor2 ar
 ret
 
 
-# PRINTHEX function
+####### PRINTHEX function #######
 # Prints a hex byte passed in the A reg
 loc printhex
 push ar
 
 mov br F0
 and br
-io ar
 shr
 shr
 shr
 shr
-io ar
 clc
 mov br A
 sub br
-io ar
 jm printhex_num1
 
 # Print letter
@@ -151,14 +158,34 @@ mov cursor2 ar
 ret
 
 
-# PRINTMEM function
-# Prints a hex byte pointed to by text1 and text2
+####### PRINTMEM function #######
+# Prints Ar hex bytes pointed to by text1 and text2
+# Max number of bytes is 255
 loc printmem
+push ar
+mov br 0
 
+loc printmem_start
+clc
+sub br
+jz printmem_end
+ldz text1
+swp
+push ar
+swp
+call printhex
+pop
+swp
+inc br
+peek 1
+jmp printmem_start
+
+loc printmem_end
+io ar
 ret
 
 
-# PRINTCHAR function
+####### PRINTCHAR function #######
 # Prints a single character to the string passed in A reg
 loc printchar
 clc
@@ -174,7 +201,7 @@ mov cursor2 ar
 ret
 
 
-# PRINTSTR function
+####### PRINTSTR function #######
 # Prints the string at text1 and text2 to the screen
 # Final character of string must be 00
 # Max string length is 255 characters
