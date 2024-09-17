@@ -38,6 +38,7 @@ def @8 38
 def @9 39
 def @: 3A
 def @as 2A
+def @us 52
 
 # Location of next character to draw
 def cursor1 $00
@@ -50,7 +51,15 @@ set cursor2 20
 def text1 $02
 def text2 $03
 
-str s_title "         g cpu emulator         "
+def keybuf1 $04
+def keybuf2 $05
+
+def KEYBUFBASE1 E0
+
+def inbuf1 $06
+def inbuf2 $07
+
+str s_title "         g cpu emulator"
 str s_cmd "cmd>"
 
 mov ar s_title1
@@ -66,33 +75,86 @@ mov text1 ar
 mov ar s_cmd2
 mov text2 ar
 call printstr
+call printus
 
-call newline
+mov ar keybuf1
+mov inbuf1 ar
+mov ar keybuf2
+mov inbuf2 ar
 
-mov ar 7
-call printchar
-
-call newline
-
-mov ar 4A
-call printhex
-
-call newline
-
-mov ar 00
-mov text1 ar
-mov ar 01
-mov text2 ar
-mov ar 8
-mov br @_
-call printmem
-
-call newline
-
-mov ar A
-call dispmem
+loc mainloop
+call keyprocess
+jmp mainloop
 
 halt
+
+
+####### KEYPROCESS function ########
+loc keyprocess
+
+mov ar keybuf1
+mov br inbuf1
+clc
+sub br
+jnz keyprocess_getkey
+# Key buffer hasn't moved, return
+ret
+loc keyprocess_getkey
+# Input buffer is a 32-bit ring buffer
+mov ar inbuf1
+clc
+inc ar
+and 1F
+or KEYBUFBASE1
+mov inbuf1 ar
+mov br 0
+ldz inbuf1
+add 0
+jnz keyprocess_bs
+
+mov ar @_
+call printchar
+call newline
+call printus
+ret
+
+loc keyprocess_bs
+sub 1F
+jnz keyprocess_char
+
+clc
+mov ar @_
+call printchar
+mov ar cursor1
+sub 2
+mov cursor1 ar
+mov ar cursor2
+add 0
+mov cursor2 ar
+mov ar @_
+call printchar
+mov ar cursor1
+dec ar
+mov cursor1 ar
+mov ar cursor2
+add 0
+mov cursor2 ar
+mov ar inbuf1
+sub 2
+and 1F
+or KEYBUFBASE1
+mov inbuf1 ar
+call printus
+ret
+
+loc keyprocess_char
+clc
+add 1F
+call printchar
+call printus
+
+ret
+
 
 ####### DISPMEM function #######
 # Display memory with locations printed
@@ -269,6 +331,21 @@ mov cursor1 ar
 mov ar cursor2
 add 0
 mov cursor2 ar
+ret
+
+
+####### PRINTUS function #######
+# Prints the underscore showing where the next char will be written
+loc printus
+mov ar @us
+call printchar
+mov ar cursor1
+dec ar
+mov cursor1 ar
+mov ar cursor2
+add 0
+mov cursor2 ar
+clc
 ret
 
 

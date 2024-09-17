@@ -69,7 +69,7 @@ SCREEN_MEM_SIZE = 0x2000
 RAM_SIZE_BYTES = 0x1000
 STACK_PTR_START = 0xDFF
 KEY_BUF_BASE = 0xDE0
-KEY_BUF_PTR_LOC = 0xDDE
+KEY_BUF_PTR_LOC = 0x0004
 
 CODE_START_LOC = 0x100
 
@@ -173,8 +173,10 @@ class address_buffer:
             self.memory[int(parts[0])] = int(parts[1], 16)
 
         # Set up key buffer memory
-        self.memory[KEY_BUF_PTR_LOC] = KEY_BUF_BASE & 0x0F
-        self.memory[KEY_BUF_PTR_LOC+1] = (KEY_BUF_BASE & 0xF0) >> 8
+        self.memory[KEY_BUF_PTR_LOC] = (KEY_BUF_BASE+0x1F) & 0xFF
+        #print("Init KEY_BUF_PTR_LOC: " + hex((KEY_BUF_BASE+0x1F) & 0xFF))
+        self.memory[KEY_BUF_PTR_LOC+1] = ((KEY_BUF_BASE+0x1F) & 0xFF00) >> 8
+        #print("Init KEY_BUF_PTR_LOC+1: " + hex(((KEY_BUF_BASE+0x1F) & 0xFF00) >> 8))
 
         #print(self.memory)
 
@@ -1695,6 +1697,7 @@ class instruction_register_control:
                     # OR IMMED (OR A and immediate value)
                     elif self.log and self.storb:
                         if self.t == 3:
+                            #print("Start OR immed")
                             # Save B reg
                             self.t = 4
                             self.ebuff[0] = True
@@ -1714,6 +1717,7 @@ class instruction_register_control:
                             self.sel[0] = 9
                         elif self.t == 6:
                             # Restore B reg
+                            self.t = 7
                             self.ealu[0] = False
                             self.lacc[0] = False
                             self.lbuff[0] = True
@@ -1723,6 +1727,7 @@ class instruction_register_control:
                             self.treset = True
                             self.lbuff[0] = False
                             self.err[0] = False
+                            #print("End OR immed")
                     
                     # XOR B (XOR A and B)
                     elif self.log and self.immeda:
@@ -2839,10 +2844,7 @@ class instruction_register_control:
         #self.SetOpcodes()
 
 
-def key_handler(key):
-    charCode = charCodes[1][charCodes[0].index(key.char)]
-    print(hex(charCode))
-    # TODO: Place keyboard inputs into the key buffer
+
 
 ip = instruction_pointer(count, lip, lip1, lip2, clk, eip, eip_b, reset, adr_bus, data_bus)
 ab = address_buffer(ladd, clk, we, ce, adr_bus, data_bus, reset)
@@ -2857,8 +2859,39 @@ irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b
 
 display = Graphics_Display(charMem, screenMem, 0, canvas, SCREEN_WIDTH, SCREEN_HEIGHT, PIXEL_SCALE)
 
-#with Listener(on_press = key_handler) as listener:   
-#    listener.join()
+
+def key_handler(key: Key):
+    try:
+        if (key.char in charCodes[0]):
+            charCode = charCodes[1][charCodes[0].index(key.char)]
+            #print(hex(charCode))
+            # Keyboard inputs go in a 32-byte ring buffer
+            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+            #print(hex(keyBufLoc))
+            ab.memory[keyBufLoc] = charCode
+    except AttributeError:
+        if (key == key.enter):
+            #print("Enter")
+            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+            #print(hex(keyBufLoc))
+            ab.memory[keyBufLoc] = 0x00
+        elif (key == key.backspace):
+            #print("Backspace")
+            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+            #print(hex(keyBufLoc))
+            ab.memory[keyBufLoc] = 0x1F
+            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] - 2) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+        elif (key == key.space):
+            #print("Enter")
+            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+            #print(hex(keyBufLoc))
+            ab.memory[keyBufLoc] = 0x20
+            
 
 listener = Listener(on_press=key_handler)
 listener.start()
@@ -2946,13 +2979,16 @@ def TestBench2():
     #print("Start time: " + str(startTime))
     Toggle_Reset()
     global totalCycles
-    while (totalCycles < 100000) and not systemHalt:
+    #while (totalCycles < 100000) and not systemHalt:
+    while not systemHalt:
         totalCycles += 1
         Toggle_Clk()
         if (totalCycles % 5000 == 0):
+            totalCycles = 1
             display.update()
             #key_handler()
             ws.update()
+            Dump_Memory()
 
     endTime = time.time_ns()
     #print("End time: " + str(endTime))
