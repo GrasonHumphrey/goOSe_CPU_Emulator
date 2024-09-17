@@ -1090,7 +1090,7 @@ class instruction_register_control:
                             self.treset = True
                             #print("finish poke")
 
-                    # STZ: Store A into offset at B from given zero-page pointer address              
+                    # STZ <immed>: Store A into offset at B from given zero-page pointer address              
                     elif self.mov and self.decb:
                         if self.t == 3:
                             # Save A to RR1
@@ -1186,7 +1186,7 @@ class instruction_register_control:
                             self.clc[0] = False
                             self.treset = True
 
-                    # LDZ: Load A from offset at B from given zero-page pointer address              
+                    # LDZ <immed>: Load A from offset at B from given zero-page pointer address              
                     elif self.mov and self.deca:
                         if self.t == 3:
                             # Load 0 into T2
@@ -1268,6 +1268,101 @@ class instruction_register_control:
                             self.ce[0] = True
                             self.clc[0] = True
                         elif self.t == 14:
+                            # Finish LDZ
+                            self.lacc[0] = False
+                            self.ce[0] = False
+                            self.clc[0] = False
+                            self.treset = True
+
+                    # LDZ Ar: Load A from offset at B from Ar zero-page pointer address              
+                    elif self.mov and self.inca:
+                        if self.t == 3:
+                            # Load 0 into T2
+                            self.t = 4
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 4:
+                            # Load Ar into T1
+                            self.t = 5
+                            self.lt2[0] = False
+                            self.clc[0] = False
+                            self.eacc[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 5:
+                            # Load temp into address reg
+                            self.t = 6
+                            self.eacc[0] = False
+                            self.lt1[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 6:
+                            # Read from MEM into A
+                            self.t = 7
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.ce[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 7:
+                            # Add offset in B to A, then save to RR2
+                            self.t = 8
+                            self.ce[0] = False
+                            self.lacc[0] = False
+                            self.ealu[0] = True
+                            self.lrr2[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.t = 9
+                            self.ealu[0] = False
+                            self.lrr2[0] = False
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.t = 10
+                            self.et[0] = False
+                            self.lacc[0] = False
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.t = 11
+                            self.ealu[0] = False
+                            self.lt1[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.t = 12
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in RR2 to T1
+                            self.t = 13
+                            self.ce[0] = False
+                            self.lt2[0] = False
+                            self.err_b[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.t = 14
+                            self.err_b[0] = False
+                            self.lt1[0] = False
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Read MEM into A
+                            self.t = 15
+                            self.et[0] = False
+                            self.ladd[0] = False
+                            self.lacc[0] = True
+                            self.ce[0] = True
+                            self.clc[0] = True
+                        elif self.t == 15:
                             # Finish LDZ
                             self.lacc[0] = False
                             self.ce[0] = False

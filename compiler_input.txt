@@ -61,6 +61,7 @@ def inbuf2 $07
 
 str s_title "         g cpu emulator"
 str s_cmd "cmd>"
+str s_exit "exit"
 
 mov ar s_title1
 mov text1 ar
@@ -87,6 +88,52 @@ call keyprocess
 jmp mainloop
 
 halt
+
+####### STREQUALS function ########
+# Returns 1 if strings are equal
+# Ar: Zero-page String 1
+# $text: Zero-page String 2
+# Br: Char code to stop on (00 for default)
+#
+# peek 1: Zero-page string 1
+# peek 2: char code to stop on
+# peek 3: local var to hold returned char
+# peek 4: local var to hold offset
+loc strequals
+push ar
+swp
+push ar
+push ar
+mov ar 0
+push ar
+swp
+
+strequals_start
+ldz ar
+poke 3
+ldz text1
+swp
+peek 3
+sub ar
+jz strequals_end
+peek 4
+inc ar
+poke 4
+swp
+peek 1
+jmp strequals_start
+
+loc strequals_end
+mov ar 0
+ret
+
+
+####### PARSEINPUT function #######
+loc parseinput
+
+
+
+ret
 
 
 ####### KEYPROCESS function ########
@@ -115,6 +162,7 @@ jnz keyprocess_bs
 mov ar @_
 call printchar
 call newline
+# TODO: Add input parsing call
 call printus
 ret
 

@@ -527,8 +527,10 @@ for line in range(len(codeParts)):
                 if ((ops[1][0] == "$") or (ops[1] in totalVars)):
                     cmdBytes.append("0a")
                     cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    cmdBytes.append("0c")
                 else:
-                    throwError("Can only zero-page store to zero-page location", line)
+                    throwError("Can only zero-page load from zero-page location", line)
 
             elif (ops[0] == "halt"):
                 expectArgs = 1
