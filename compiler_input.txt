@@ -48,46 +48,76 @@ set cursor1 00
 set cursor2 20
 
 # Location of next text to be drawn to the screen
-def text1 $02
-def text2 $03
+def text1 02
+def text2 03
 
-def keybuf1 $04
-def keybuf2 $05
+def keybuf1 04
+def keybuf2 05
 
 def KEYBUFBASE1 E0
 
-def inbuf1 $06
-def inbuf2 $07
+def inbuf1 06
+def inbuf2 07
+
+def commandstart1 08
+def commandstart2 09
 
 str s_title "         g cpu emulator"
 str s_cmd "cmd>"
 str s_exit "exit"
+str s_commandnotrecognized "command not recognized."
 
 mov ar s_title1
-mov text1 ar
+mov $text1 ar
 mov ar s_title2
-mov text2 ar
+mov $text2 ar
 call printstr
 
 call newline
 
 mov ar s_cmd1
-mov text1 ar
+mov $text1 ar
 mov ar s_cmd2
-mov text2 ar
+mov $text2 ar
 call printstr
 call printus
 
-mov ar keybuf1
-mov inbuf1 ar
-mov ar keybuf2
-mov inbuf2 ar
+mov ar $keybuf1
+mov $inbuf1 ar
+mov ar $keybuf2
+mov $inbuf2 ar
+
+# Set commandstart to initial correct value
+mov ar $keybuf1
+inc ar
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+mov ar $keybuf2
+mov $commandstart2 ar
+clc
 
 loc mainloop
 call keyprocess
 jmp mainloop
 
 halt
+
+####### CLear Screen function ######
+# Clears the screen
+
+func cls
+# Save Ar and Br
+push ar
+swp
+push ar
+
+mov ar 0
+
+
+ret
+
+
 
 ####### STREQUALS function ########
 # Returns 1 if strings are equal
@@ -99,7 +129,7 @@ halt
 # peek 2: char code to stop on
 # peek 3: local var to hold returned char
 # peek 4: local var to hold offset
-loc strequals
+func strequals
 
 push ar
 swp
@@ -109,18 +139,14 @@ mov ar 0
 push ar
 swp
 mov br 0
-io ar
 
 loc strequals_start
 ldz ar
-io ar
 poke 3
-ldz text1
-io ar
+ldz $text1
 swp
 peek 3
 sub br
-io ar
 # Are the strings different?
 jnz strequals_end
 # Are we at the end?
@@ -178,45 +204,54 @@ ret
 
 
 ####### PARSEINPUT function #######
-loc parseinput
+func parseinput
 # TODO: Fix strcompare
-ret
+#ret
 
 # Was exit typed?
 mov ar s_exit1
-mov text1 ar
+mov $text1 ar
 mov ar s_exit2
-mov text2 ar
-mov ar inbuf1
+mov $text2 ar
+mov ar commandstart1
+mov br @_
 call strequals
 add 0
 jnz parseinput_exit
 
 # No recognized command
-mov ar keybuf1
-mov inbuf1 ar
-mov ar keybuf2
-mov inbuf2 ar
+mov ar s_commandnotrecognized1
+mov $text1 ar
+mov ar s_commandnotrecognized2
+mov $text2 ar
+call printstr
+call newline
+call newline
 
-ret
+jmp parseinput_end
 
+# "EXIT" typed
 loc parseinput_exit
-io br
-mov ar keybuf1
-mov inbuf1 ar
-mov ar keybuf2
-mov inbuf2 ar
 halt
-ret
+
+loc parseinput_end
+
+mov ar $inbuf1
+inc ar
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+mov ar $inbuf2
+mov $commandstart2 ar
 
 ret
 
 
 ####### KEYPROCESS function ########
-loc keyprocess
+func keyprocess
 
-mov ar keybuf1
-mov br inbuf1
+mov ar $keybuf1
+mov br $inbuf1
 clc
 sub br
 jnz keyprocess_getkey
@@ -224,14 +259,14 @@ jnz keyprocess_getkey
 ret
 loc keyprocess_getkey
 # Input buffer is a 32-bit ring buffer
-mov ar inbuf1
+mov ar $inbuf1
 clc
 inc ar
 and 1F
 or KEYBUFBASE1
-mov inbuf1 ar
+mov $inbuf1 ar
 mov br 0
-ldz inbuf1
+ldz $inbuf1
 add 0
 jnz keyprocess_bs
 
@@ -242,9 +277,9 @@ call newline
 call parseinput
 
 mov ar s_cmd1
-mov text1 ar
+mov $text1 ar
 mov ar s_cmd2
-mov text2 ar
+mov $text2 ar
 call printstr
 call printus
 ret
@@ -270,11 +305,11 @@ mov cursor1 ar
 mov ar cursor2
 add 0
 mov cursor2 ar
-mov ar inbuf1
+mov ar $inbuf1
 sub 2
 and 1F
 or KEYBUFBASE1
-mov inbuf1 ar
+mov $inbuf1 ar
 call printus
 ret
 
@@ -292,7 +327,7 @@ ret
 # Arguments:
 # Ar: Number of 8-byte blocks to print
 # $text: Starting location to print from
-loc dispmem
+func dispmem
 push ar
 
 loc dispmem_start
@@ -300,9 +335,9 @@ dec ar
 jm dispmem_end
 poke 1
 
-mov ar text2
+mov ar $text2
 call printhex
-mov ar text1
+mov ar $text1
 call printhex
 mov ar @:
 call printchar
@@ -310,12 +345,12 @@ mov ar 8
 mov br @_
 call printmem
 call newline
-mov ar text1
+mov ar $text1
 add 8
-mov text1 ar
-mov ar text2
+mov $text1 ar
+mov ar $text2
 add 0
-mov text2 ar
+mov $text2 ar
 peek 1
 jmp dispmem_start
 
@@ -343,7 +378,7 @@ ret
 
 ####### PRINTHEX function #######
 # Prints a hex byte passed in the A reg
-loc printhex
+func printhex
 push ar
 
 mov br F0
@@ -404,7 +439,7 @@ ret
 
 
 ####### PRINTMEM function #######
-# Prints Ar hex bytes pointed to by text1 and text2
+# Prints Ar hex bytes pointed to by $text1 and $text2
 # Max number of bytes is 255
 # Arguments:
 # $text: Location of memory to print
@@ -415,7 +450,7 @@ ret
 # BP2: Character to print between bytes, 00 for no space
 # BP3: Number of bytes that have been printed
 
-loc printmem
+func printmem
 push ar
 swp
 push ar
@@ -427,7 +462,7 @@ loc printmem_start
 clc
 sub br
 jz printmem_end
-ldz text1
+ldz $text1
 swp
 poke 3
 swp
@@ -451,7 +486,7 @@ ret
 
 ####### PRINTCHAR function #######
 # Prints a single character to the string passed in A reg
-loc printchar
+func printchar
 clc
 mov br 0
 stz cursor1
@@ -467,7 +502,7 @@ ret
 
 ####### PRINTUS function #######
 # Prints the underscore showing where the next char will be written
-loc printus
+func printus
 mov ar @us
 call printchar
 mov ar cursor1
@@ -481,15 +516,15 @@ ret
 
 
 ####### PRINTSTR function #######
-# Prints the string at text1 and text2 to the screen
+# Prints the string at $text1 and $text2 to the screen
 # Final character of string must be 00
 # Max string length is 255 characters
-loc printstr
+func printstr
 clc
 mov br 0
 
 loc startprint
-ldz text1
+ldz $text1
 add 0
 jz endprint
 stz cursor1

@@ -45,8 +45,8 @@ expectArgs = 0
 
 hexChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
 
-charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ', '>', '_'],
-             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20,0x3E,0x52]]
+charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ', '>', '_', '.'],
+             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20,0x3E,0x52,0x2E]]
 
 locVars = [[], []]
 defVars = [[], []]
@@ -109,7 +109,7 @@ for line in range(len(codeParts)):
             for op in range(len(lineParts)):
                 ops.append(lineParts[op])
 
-            if (ops[0] == "loc"):
+            if (ops[0] == "loc" or ops[0] == "func"):
                 expectArgs = 2
                 if (not (ops[1] in locVars[0])):
                     if "." not in ops[1]:
@@ -177,6 +177,7 @@ codeParts = code.lower().split("\n")
 for line in range(len(codeParts)):
 
     lineParts = codeParts[line].split()
+    #print(lineParts)
     ops = []
     if (len(lineParts) != 0):
         if (lineParts[0][0] != '#'):
@@ -189,8 +190,14 @@ for line in range(len(codeParts)):
             opcodeNum = ""
 
             for op in range(1, len(ops)):
+                #print(ops[op])
                 if (ops[op] in defVars[0]):
                     ops[op] = defVars[1][defVars[0].index(ops[op])]
+                elif (ops[op][0] == '$'):
+                    #print(ops[op])
+                    if (ops[op][1:] in defVars[0]):
+                        ops[op] = "$" + defVars[1][defVars[0].index(ops[op][1:])]
+                        #print(ops[op])
             shortZPAdr = False
             if (ops[0] == "mov"):
                 # Move operation
@@ -217,6 +224,7 @@ for line in range(len(codeParts)):
                         cmdBytes.append(clean_operand(ops[2], line))
                 elif (ops[2] == "ar"):
                     # MOV [<mem>], A
+                    #print(ops)
                     if (ops[1][0] != "*" and ops[1][0] != "$"):
                         throwError("Must specify a memory address for MEM store operation", line)
                     cmdBytes.append("05")
@@ -636,7 +644,7 @@ for line in range(len(codeParts)):
                     else:
                         cmdNum = newCmdNum
 
-            elif (ops[0] == "loc"):
+            elif (ops[0] == "loc" or ops[0] == "func"):
                 expectArgs = 2
                 index1 = locVars[0].index(ops[1])
                 cleanCmdNum = clean_operand("*" + str(hex(cmdNum)).replace("0x", ""), line)
@@ -656,7 +664,7 @@ for line in range(len(codeParts)):
                 throwError("Invalid ops[0]: " + ops[0], line)
 
 
-            if (not((ops[0] == "set") or (ops[0] == "loc") or (ops[0] == "def") or (ops[0] == "here") or (ops[0] == "str"))):
+            if (not((ops[0] == "set") or (ops[0] == "loc") or (ops[0] == "func") or (ops[0] == "def") or (ops[0] == "here") or (ops[0] == "str"))):
                 if (cmdNum in setVars):
                     throwError("Compiled code overwrote SET on cmdNum: " + str(cmdNum), line)
                 if (len(lineParts) != expectArgs):

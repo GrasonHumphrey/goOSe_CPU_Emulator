@@ -73,8 +73,8 @@ KEY_BUF_PTR_LOC = 0x0004
 
 CODE_START_LOC = 0x100
 
-charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ',  '>'],
-             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20,0x3E]]
+charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ',  '>', '_', '.'],
+             [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20,0x3E,0x52,0x2E]]
 
 charPressed = ''
 charMem = [0 for i in range(CHAR_MEM_SIZE)]
@@ -688,7 +688,8 @@ class instruction_register_control:
                 (self.jmp and self.deca) or
                 (self.jmp and self.aux) or
                 (self.add and self.stora) or 
-                (self.jmp and self.decb))
+                (self.jmp and self.decb) or
+                (self.mov and self.inca))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -1357,6 +1358,7 @@ class instruction_register_control:
                         elif self.t == 14:
                             # Read MEM into A
                             self.t = 15
+                            #print("LDZ from address: " + hex(self.adr_bus[0]))
                             self.et[0] = False
                             self.ladd[0] = False
                             self.lacc[0] = True
@@ -3096,6 +3098,6 @@ def TestBench2():
     display.update()
     Print_Final_Dump()
     Dump_Memory()
-    ws.mainloop()
+    ws.destroy()
 
 TestBench2()
