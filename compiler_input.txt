@@ -100,6 +100,7 @@ halt
 # peek 3: local var to hold returned char
 # peek 4: local var to hold offset
 loc strequals
+
 push ar
 swp
 push ar
@@ -107,15 +108,38 @@ push ar
 mov ar 0
 push ar
 swp
+mov br 0
+io ar
 
-strequals_start
+loc strequals_start
 ldz ar
+io ar
 poke 3
 ldz text1
+io ar
 swp
 peek 3
-sub ar
-jz strequals_end
+sub br
+io ar
+# Are the strings different?
+jnz strequals_end
+# Are we at the end?
+clc
+add br
+jnz strequals_nonzero
+# Both chars end in 00, return 1
+mov ar 1
+ret
+loc strequals_nonzero
+peek 2
+sub br
+jnz strequals_nonstop
+# Both chars end in stop char, return 1
+clc
+mov ar 1
+ret
+loc strequals_nonstop
+# Not 00 or stop char, continue
 peek 4
 inc ar
 poke 4
@@ -124,14 +148,66 @@ peek 1
 jmp strequals_start
 
 loc strequals_end
+# Strings are different. Is the difference only in the ending char?
+clc
+add br
+add 0
+jz strequals_end_onezero
+# Is the other one zero?
+clc
+swp
+add 0
+jz strequals_end_onezero
+# Strings are different and neither ending is 00 so they really are different, return 0
 mov ar 0
+ret
+loc strequals_end_onezero
+# Is the other char the ending char?
+peek 2
+swp
+sub br
+jz strequals_end_match
+# One char is 00, but the other isn't stop char, return 0
+mov ar 0
+ret
+
+loc strequals_end_match
+# One char is 00, one is stop char, return 1
+mov ar 1
 ret
 
 
 ####### PARSEINPUT function #######
 loc parseinput
+# TODO: Fix strcompare
+ret
 
+# Was exit typed?
+mov ar s_exit1
+mov text1 ar
+mov ar s_exit2
+mov text2 ar
+mov ar inbuf1
+call strequals
+add 0
+jnz parseinput_exit
 
+# No recognized command
+mov ar keybuf1
+mov inbuf1 ar
+mov ar keybuf2
+mov inbuf2 ar
+
+ret
+
+loc parseinput_exit
+io br
+mov ar keybuf1
+mov inbuf1 ar
+mov ar keybuf2
+mov inbuf2 ar
+halt
+ret
 
 ret
 
@@ -163,6 +239,13 @@ mov ar @_
 call printchar
 call newline
 # TODO: Add input parsing call
+call parseinput
+
+mov ar s_cmd1
+mov text1 ar
+mov ar s_cmd2
+mov text2 ar
+call printstr
 call printus
 ret
 

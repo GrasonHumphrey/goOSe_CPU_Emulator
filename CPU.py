@@ -2975,11 +2975,13 @@ def key_handler(key: Key):
         elif (key == key.backspace):
             #print("Backspace")
             keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
-            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
-            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
-            #print(hex(keyBufLoc))
-            ab.memory[keyBufLoc] = 0x1F
-            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] - 2) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+            # Don't backspace past line return
+            if (not ab.memory[keyBufLoc] == 0):
+                ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+                keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+                #print(hex(keyBufLoc))
+                ab.memory[keyBufLoc] = 0x1F
+                ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] - 2) & 0x1F) | (KEY_BUF_BASE & 0xFF)
         elif (key == key.space):
             #print("Enter")
             ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
