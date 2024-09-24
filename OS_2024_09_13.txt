@@ -44,8 +44,11 @@ def @us 52
 def cursor1 $00
 def cursor2 $01
 
-set cursor1 00
-set cursor2 20
+def CURSOR1_BASE 00
+def CURSOR2_BASE 20
+
+set cursor1 CURSOR1_BASE
+set cursor2 CURSOR2_BASE
 
 # Location of next text to be drawn to the screen
 def text1 02
@@ -65,6 +68,8 @@ def commandstart2 09
 str s_title "         g cpu emulator"
 str s_cmd "cmd>"
 str s_exit "exit"
+str s_commandnotrecognized "command not recognized."
+str s_cls "cls"
 
 mov ar s_title1
 mov $text1 ar
@@ -101,6 +106,55 @@ call keyprocess
 jmp mainloop
 
 halt
+
+####### CLear Screen function ######
+# Clears the screen
+# TODO: Redraw UI and set cursor back to start
+
+func cls
+# Save Ar and Br
+push ar
+swp
+push ar
+
+mov ar CURSOR1_BASE
+mov cursor1 ar
+mov ar CURSOR2_BASE
+mov cursor2 ar
+
+mov br 0
+
+loc cls_blank
+# Blank the screen
+mov ar 20
+stz cursor1
+inc br
+jnz cls_blank
+mov ar cursor2
+inc ar
+mov cursor2 ar
+sub CURSOR2_BASE
+sub 4
+#io ar
+jnz cls_blank
+
+# Redraw UI
+mov ar CURSOR1_BASE
+mov cursor1 ar
+mov ar CURSOR2_BASE
+mov cursor2 ar
+
+mov ar s_title1
+mov $text1 ar
+mov ar s_title2
+mov $text2 ar
+call printstr
+
+call newline
+
+ret
+
+
 
 ####### STREQUALS function ########
 # Returns 1 if strings are equal
@@ -202,12 +256,36 @@ call strequals
 add 0
 jnz parseinput_exit
 
+# Was cls typed?
+mov ar s_cls1
+mov $text1 ar
+mov ar s_cls2
+mov $text2 ar
+mov ar commandstart1
+mov br @_
+call strequals
+add 0
+jnz parseinput_cls
+
 # No recognized command
+mov ar s_commandnotrecognized1
+mov $text1 ar
+mov ar s_commandnotrecognized2
+mov $text2 ar
+call printstr
+call newline
+call newline
+
 jmp parseinput_end
 
 # "EXIT" typed
 loc parseinput_exit
 halt
+
+# "CLS" typed
+loc parseinput_cls
+call cls
+jmp parseinput_end
 
 loc parseinput_end
 
