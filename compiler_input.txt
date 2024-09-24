@@ -171,20 +171,22 @@ or KEYBUFBASE1
 mov $commandstart1 ar
 mov ar @_
 call readinput
-sub 2
-jz os_write_step2
-# Error, need 2 nibbles for data
-mov ar s_os_write_error21
-mov $text1 ar
-mov ar s_os_write_error22
-mov $text2 ar
-call printstr
-call newline
-call newline
-ret
 
-loc os_write_step2
+sub 1
+# Only one nibble given?
+jnz os_write_step2_notone
+# Push char 0 for high nibble
+push 30
+mov br 0
+ldz $commandstart1
+call chartohex
+#io ar
+jmp os_write_end
+
+loc os_write_step2_notone
 # Two nibbles given?
+sub 1
+jnz os_write_step2_err
 mov br 0
 ldz $commandstart1
 push ar
@@ -194,7 +196,18 @@ call chartohex
 #io ar
 jmp os_write_end
 
+loc os_write_step2_err
+mov ar s_os_write_error21
+mov $text1 ar
+mov ar s_os_write_error22
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
 loc os_write_end
+
 mov br 0
 stz $text1
 
@@ -255,6 +268,7 @@ or KEYBUFBASE1
 mov $commandstart1 ar
 mov ar @_
 call readinput
+io ar
 add 0
 jnz os_read_nondefault
 # No second argument given, print default 6 blocks
@@ -621,7 +635,6 @@ jnz keyprocess_bs
 mov ar @_
 call printchar
 call newline
-# TODO: Add input parsing call
 call parseinput
 
 mov ar s_cmd1
