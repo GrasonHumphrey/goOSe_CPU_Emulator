@@ -86,6 +86,9 @@ str s_cls "cls"
 str s_read "read"
 str s_os_read_error1 "error: 1st arg (address) must be 2 bytes"
 str s_os_read_error2 "error: 2nd arg (blocks) must be 1 byte"
+str s_write "write"
+str s_os_write_error2 "error: 2nd arg (data) must be 1 byte"
+str s_done "done."
 
 mov ar s_title1
 mov $text1 ar
@@ -124,17 +127,17 @@ jmp mainloop
 halt
 
 
-####### Read from memory function #######
-# Prints memory bytes to the screen
-# Syntax: READ [start] [#8 byte blocks]
-func os_read
+####### Write to memory function #######
+# Writes one memory byte at a given location
+# Syntax: WRITE [address] [data]
+func os_write
 
 mov ar @_
 call readinput
-io ar
+#io ar
 sub 4
 # Is the first argument 2 bytes?
-jz readinput_step1
+jz os_write_step1
 mov ar s_os_read_error11
 mov $text1 ar
 mov ar s_os_read_error12
@@ -144,7 +147,91 @@ call newline
 call newline
 ret
 
-loc readinput_step1
+loc os_write_step1
+mov br 0
+ldz $commandstart1
+push ar
+mov br 1
+ldz $commandstart1
+call chartohex
+mov $text2 ar
+
+mov br 2
+ldz $commandstart1
+push ar
+mov br 3
+ldz $commandstart1
+call chartohex
+mov $text1 ar
+
+mov ar $commandstart1
+add 5
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+mov ar @_
+call readinput
+sub 2
+jz os_write_step2
+# Error, need 2 nibbles for data
+mov ar s_os_write_error21
+mov $text1 ar
+mov ar s_os_write_error22
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc os_write_step2
+# Two nibbles given?
+mov br 0
+ldz $commandstart1
+push ar
+mov br 1
+ldz $commandstart1
+call chartohex
+#io ar
+jmp os_write_end
+
+loc os_write_end
+mov br 0
+stz $text1
+
+mov ar s_done1
+mov $text1 ar
+mov ar s_done2
+mov $text2 ar
+call printstr
+
+call newline
+call newline
+
+ret
+
+
+
+####### Read from memory function #######
+# Prints memory bytes to the screen
+# Syntax: READ [start] [#8 byte blocks]
+func os_read
+
+mov ar @_
+call readinput
+#io ar
+sub 4
+# Is the first argument 2 bytes?
+jz os_read_step1
+mov ar s_os_read_error11
+mov $text1 ar
+mov ar s_os_read_error12
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc os_read_step1
 mov br 0
 ldz $commandstart1
 push ar
@@ -445,6 +532,17 @@ call strequals
 add 0
 jnz parseinput_read
 
+# Was write typed?
+mov ar s_write1
+mov $text1 ar
+mov ar s_write2
+mov $text2 ar
+mov ar commandstart1
+mov br @_
+call strequals
+add 0
+jnz parseinput_write
+
 # No recognized command
 mov ar s_commandnotrecognized1
 mov $text1 ar
@@ -467,14 +565,22 @@ jmp parseinput_end
 
 # "READ" typed
 loc parseinput_read
-
 mov ar $commandstart1
 add 5
 and 1F
 or KEYBUFBASE1
 mov $commandstart1 ar
-
 call os_read
+jmp parseinput_end
+
+# "WRITE" typed
+loc parseinput_write
+mov ar $commandstart1
+add 6
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+call os_write
 jmp parseinput_end
 
 loc parseinput_end
