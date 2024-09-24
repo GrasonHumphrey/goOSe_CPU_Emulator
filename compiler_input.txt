@@ -1,3 +1,6 @@
+# KNOWN BUGS:
+# Enter exactly 29 characters, then enter, then "exit", then enter.  "exit" will not be recognized.  Something wrong with input ring buffer
+
 # Text to code converter
 def @a 1
 def @b 2
@@ -126,7 +129,9 @@ halt
 # Syntax: READ [start] [#8 byte blocks]
 func os_read
 
+mov ar @_
 call readinput
+io ar
 sub 4
 # Is the first argument 2 bytes?
 jz readinput_step1
@@ -155,10 +160,58 @@ mov br 3
 ldz $commandstart1
 call chartohex
 mov $text1 ar
+
+mov ar $commandstart1
+add 5
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+mov ar @_
+call readinput
+add 0
+jnz os_read_nondefault
+# No second argument given, print default 6 blocks
 mov ar 6
+jmp os_read_end
 
+loc os_read_nondefault
+sub 1
+# Only one nibble given?
+jnz os_read_step2_notone
+# Push char 0 for high nibble
+push 30
+mov br 0
+ldz $commandstart1
+call chartohex
+#io ar
+jmp os_read_end
+
+loc os_read_step2_notone
+# Two nibbles given?
+sub 1
+jnz os_read_step2_err
+# Push char 0 for high nibble
+mov br 0
+ldz $commandstart1
+push ar
+mov br 1
+ldz $commandstart1
+call chartohex
+#io ar
+jmp os_read_end
+
+loc os_read_step2_err
+mov ar s_os_read_error21
+mov $text1 ar
+mov ar s_os_read_error22
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc os_read_end
 call dispmem
-
 call newline
 ret
 
@@ -182,13 +235,23 @@ swp
 
 loc readinput_start
 ldz $commandstart1
+#io ar
 # Get input char in Ar
 add 0
 jnz readinput_nonzero
+#io br
 swp
 ret
 
 loc readinput_nonzero
+sub 1f
+jnz readinput_nonbs
+swp
+ret
+
+loc readinput_nonbs
+clc
+add 1f
 swp
 # Save number of cycles
 poke 2
@@ -581,12 +644,14 @@ loc chartohex_high_start
 swp
 # Get high nibble
 peek FC
+#io ar
 # Do same hex conversion on high nibble
 # Is high nibble hex letter?
 sub 7
 jm chartohex_high_hexletter
 # Not hex letter, so number. Convert char num to hex
 sub 29
+#io ar
 jmp chartohex_end
 
 loc chartohex_high_hexletter
