@@ -81,8 +81,8 @@ str s_exit "exit"
 str s_commandnotrecognized "command not recognized."
 str s_cls "cls"
 str s_read "read"
-str s_error_1st_arg_must_be_2_bytes "error: 1st arg must be 2 bytes"
-str s_error_2nd_arg_must_be_1_byte "error: 2nd arg must be 1 bytes"
+str s_os_read_error1 "error: 1st arg (address) must be 2 bytes"
+str s_os_read_error2 "error: 2nd arg (blocks) must be 1 byte"
 
 mov ar s_title1
 mov $text1 ar
@@ -124,15 +124,15 @@ halt
 ####### Read from memory function #######
 # Prints memory bytes to the screen
 # Syntax: READ [start] [#8 byte blocks]
-func read
+func os_read
 
 call readinput
 sub 4
 # Is the first argument 2 bytes?
 jz readinput_step1
-mov ar s_error_1st_arg_must_be_2_bytes1
+mov ar s_os_read_error11
 mov $text1 ar
-mov ar s_error_1st_arg_must_be_2_bytes2
+mov ar s_os_read_error12
 mov $text2 ar
 call printstr
 call newline
@@ -140,13 +140,22 @@ call newline
 ret
 
 loc readinput_step1
-
-
-mov ar 00
-mov $text1 ar
-mov ar 01
+mov br 0
+ldz $commandstart1
+push ar
+mov br 1
+ldz $commandstart1
+call chartohex
 mov $text2 ar
-mov ar 5
+
+mov br 2
+ldz $commandstart1
+push ar
+mov br 3
+ldz $commandstart1
+call chartohex
+mov $text1 ar
+mov ar 6
 
 call dispmem
 
@@ -206,7 +215,7 @@ ret
 # Clears the screen
 # TODO: Redraw UI and set cursor back to start
 
-func cls
+func os_cls
 # Save Ar and Br
 #push ar
 #swp
@@ -390,7 +399,7 @@ halt
 
 # "CLS" typed
 loc parseinput_cls
-call cls
+call os_cls
 jmp parseinput_end
 
 # "READ" typed
@@ -402,7 +411,7 @@ and 1F
 or KEYBUFBASE1
 mov $commandstart1 ar
 
-call read
+call os_read
 jmp parseinput_end
 
 loc parseinput_end
@@ -543,6 +552,57 @@ mov cursor1 ar
 mov ar cursor2
 add 0
 mov cursor2 ar
+ret
+
+
+####### CHARTOHEX function #######
+# Converts two chars to a single hex byte
+# Arguments:
+# Push 1 (peek FC): high-nibble char
+# Ar: low-nibble char
+# Returns:
+# Ar: hex byte
+func chartohex
+
+# Is low nibble hex letter?
+sub 7
+jm chartohex_low_hexletter
+# Not hex letter, so number. Convert char num to hex
+sub 29
+jmp chartohex_high_start
+
+loc chartohex_low_hexletter
+# Convert char hex letter to hex
+clc
+add 10
+
+loc chartohex_high_start
+# Move low nibble to Br
+swp
+# Get high nibble
+peek FC
+# Do same hex conversion on high nibble
+# Is high nibble hex letter?
+sub 7
+jm chartohex_high_hexletter
+# Not hex letter, so number. Convert char num to hex
+sub 29
+jmp chartohex_end
+
+loc chartohex_high_hexletter
+# Convert char hex letter to hex
+clc
+add 10
+
+loc chartohex_end
+# Shift high nibble up
+shl
+shl
+shl
+shl
+# OR with low nibble and return
+or br
+
 ret
 
 
