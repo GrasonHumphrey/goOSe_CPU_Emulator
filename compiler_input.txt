@@ -39,6 +39,7 @@ def @9 39
 def @: 3A
 def @as 2A
 def @us 52
+def @bl 60
 
 # Location of next character to draw
 def cursor1 $00
@@ -65,11 +66,23 @@ def inbuf2 07
 def commandstart1 08
 def commandstart2 09
 
+def heap1 0A
+def heap2 0B
+
+def HEAPBASE1 00
+def HEAPBASE2 0C
+
+set heap1 HEAPBASE1
+set heap2 HEAPBASE2
+
 str s_title "         g cpu emulator"
 str s_cmd "cmd>"
 str s_exit "exit"
 str s_commandnotrecognized "command not recognized."
 str s_cls "cls"
+str s_read "read"
+str s_error_1st_arg_must_be_2_bytes "error: 1st arg must be 2 bytes"
+str s_error_2nd_arg_must_be_1_byte "error: 2nd arg must be 1 bytes"
 
 mov ar s_title1
 mov $text1 ar
@@ -107,15 +120,97 @@ jmp mainloop
 
 halt
 
+
+####### Read from memory function #######
+# Prints memory bytes to the screen
+# Syntax: READ [start] [#8 byte blocks]
+func read
+
+call readinput
+sub 4
+# Is the first argument 2 bytes?
+jz readinput_step1
+mov ar s_error_1st_arg_must_be_2_bytes1
+mov $text1 ar
+mov ar s_error_1st_arg_must_be_2_bytes2
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc readinput_step1
+
+
+mov ar 00
+mov $text1 ar
+mov ar 01
+mov $text2 ar
+mov ar 5
+
+call dispmem
+
+call newline
+ret
+
+
+
+####### Read Input function #######
+# Arguments:
+# Ar: Char code to stop on
+# Returns:
+# Ar: Number of characters read before stop char
+# Local vars:
+# Peek 1: Stop char code
+# Peek 2: Number of chars read
+func readinput
+push ar
+
+mov br 0
+swp
+push ar
+swp
+
+loc readinput_start
+ldz $commandstart1
+# Get input char in Ar
+add 0
+jnz readinput_nonzero
+swp
+ret
+
+loc readinput_nonzero
+swp
+# Save number of cycles
+poke 2
+# Get stop code
+peek 1
+sub br
+jnz readinput_nonstop
+# Stop code reached
+peek 2
+ret
+
+loc readinput_nonstop
+peek 2
+inc ar
+poke 2
+swp
+jmp readinput_start
+
+ret
+
+
+
 ####### CLear Screen function ######
 # Clears the screen
 # TODO: Redraw UI and set cursor back to start
 
 func cls
 # Save Ar and Br
-push ar
-swp
-push ar
+#push ar
+#swp
+#push ar
 
 mov ar CURSOR1_BASE
 mov cursor1 ar
@@ -126,7 +221,7 @@ mov br 0
 
 loc cls_blank
 # Blank the screen
-mov ar 20
+mov ar 00
 stz cursor1
 inc br
 jnz cls_blank
@@ -267,6 +362,17 @@ call strequals
 add 0
 jnz parseinput_cls
 
+# Was read typed?
+mov ar s_read1
+mov $text1 ar
+mov ar s_read2
+mov $text2 ar
+mov ar commandstart1
+mov br @_
+call strequals
+add 0
+jnz parseinput_read
+
 # No recognized command
 mov ar s_commandnotrecognized1
 mov $text1 ar
@@ -287,8 +393,19 @@ loc parseinput_cls
 call cls
 jmp parseinput_end
 
-loc parseinput_end
+# "READ" typed
+loc parseinput_read
 
+mov ar $commandstart1
+add 5
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+
+call read
+jmp parseinput_end
+
+loc parseinput_end
 mov ar $inbuf1
 inc ar
 and 1F

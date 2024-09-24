@@ -25,8 +25,8 @@ class Graphics_Display:
         if (self.mode == 0):
             # Set screen mem to all char blanks
             for i in range(0x400):
-                self.screenMem[i] = 0x60
-                self.oldScreenMem.append(0x60)
+                self.screenMem[i] = 0x00
+                self.oldScreenMem.append(0x00)
 
         # Create all pixels
         for i in range(0x400):
@@ -57,6 +57,7 @@ class Graphics_Display:
                 charLine = 0
                 while (charLine < 8):
                     if (charCode != self.oldScreenMem[i] or self.charMem[8 * charCode + charLine] != self.oldCharMem[8 * charCode + charLine]):
+                        #print(hex(charCode))
                         # Only update pixel if either screen or character memory has been updated
                         self.oldCharMem[8 * charCode + charLine] = self.charMem[8 * charCode + charLine]
                         #print(hex(charCode))
