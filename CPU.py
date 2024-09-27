@@ -310,6 +310,7 @@ class arithmetic_logic_unit:
             overrideSF = False
             if self.clc[0]:
                 self.cf[0] = False
+                self.of[0] = False
             if self.sel[0] == 0x0:
                 # ADD
                 result = (self.alu_in_a[0] + self.alu_in_b[0])

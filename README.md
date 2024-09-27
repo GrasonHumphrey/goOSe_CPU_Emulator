@@ -79,7 +79,7 @@ To run the emulated OS, use:
   python Compiler.py compiler_input.txt run
   ```
 
-_For more examples and complete documentation, please refer to the [Documentation](https://github.com/GrasonHumphrey/CPU_Python/tree/main/docs).  Compiler_Reference.md is probably the best place to start if you're programming._
+_For more examples and complete documentation, please refer to the [Documentation](https://github.com/GrasonHumphrey/CPU_Python/tree/main/docs).  Programming_Reference.md is probably the best place to start._
 
 
 
