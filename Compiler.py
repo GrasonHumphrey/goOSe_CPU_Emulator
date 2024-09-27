@@ -575,7 +575,7 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Can only peek at offset from BP", line)
-                elif (ops[1] == "ar"):
+                elif (ops[1] == "br"):
                     cmdBytes.append("8E")
                 else:
                     cmdBytes.append("88")
@@ -586,6 +586,8 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Can only poke at offset from BP", line)
+                elif (ops[1] == "br"):
+                    cmdBytes.append("8C")
                 else:
                     cmdBytes.append("89")
                     cmdBytes.append(clean_operand(ops[1], line))

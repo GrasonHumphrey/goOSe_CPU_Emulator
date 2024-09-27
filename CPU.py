@@ -693,7 +693,8 @@ class instruction_register_control:
                 (self.jmp and self.aux) or
                 (self.add and self.stora) or 
                 (self.jmp and self.decb) or
-                (self.mov and self.inca))
+                (self.mov and self.inca) or
+                (self.jmp and self.inca))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -1501,8 +1502,8 @@ class instruction_register_control:
                         elif self.t == 7:
                             self.treset = True
                             #print("Finish XOR immed")
-                    
-                     # NOT (NOT A)
+                         
+                    # NOT (NOT A)
                     elif self.log and self.immedb:
                         if self.t == 3:
                             self.ealu[0] = True
@@ -1853,18 +1854,18 @@ class instruction_register_control:
                             # Call finished
                             self.clc[0] = False
                             self.treset = True
-                    # Peek at A reg BP offset
+                    
+                    # Peek at B reg BP offset
                     elif self.jmp and self.aux:
                         #print("A reg peek")
                         if self.t == 3:
                             # Save A
-                            self.lrr2[0] = True
+                            self.lrr1[0] = True
                             self.eacc[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                          # Save B
-                            #print("Saved A: " + hex(self.data_bus[0]))
-                            self.lrr1[0] = True
+                            self.lrr2[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
                             # Load low byte of base pointer into A
@@ -1916,14 +1917,14 @@ class instruction_register_control:
                             self.ce[0] = True
                         elif self.t == 14:
                             # Restore B
-                            self.err[0] = True
+                            self.err_b[0] = True
                             self.lbuff[0] = True
                             self.clc[0] = True
                         elif self.t == 15:
                             # Call finished
                             self.treset = True
                             
-                    # Poke A to BP offset
+                    # Poke A to <immed> BP offset
                     elif self.jmp and self.shr:
                         if self.t == 3:
                          # Save A to RR2
@@ -1990,6 +1991,67 @@ class instruction_register_control:
                             self.lbuff[0] = True
                             self.clc[0] = True
                         elif self.t == 15:
+                            # Call finished
+                            self.treset = True
+                            #print("finish poke")
+
+                    # Poke A to B reg BP offset
+                    elif self.jmp and self.inca:
+                        if self.t == 3:
+                         # Save A to RR2
+                            self.eacc[0] = True
+                            self.lrr2[0] = True
+                            self.clc[0] = True
+                        elif self.t == 4:
+                         # Save B to RR1
+                            #print("Saved A: " + hex(self.data_bus[0]))
+                            self.lrr1[0] = True
+                            self.ebuff[0] = True
+                        elif self.t == 5:
+                            # Load low byte of base pointer into A
+                            self.lacc[0] = True
+                            self.ebp[0] = True
+                        elif self.t == 6:
+                            # Add A and B
+                            self.lacc[0] = True
+                            self.ealu[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 7:
+                            # Move result to temp1
+                            self.eacc[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 8:
+                            # Load BP2 into A
+                            self.ebp_b[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Decide if upper byte of BP needs to be incremented
+                            #print("BP_B: " + hex(self.data_bus[0]))
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lacc[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Move result to temp2
+                            self.eacc[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 11:
+                            # Move temp into address reg
+                            #print("ACC: " + hex(self.data_bus[0]))
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 12:
+                            # Write saved value of A and restore A
+                            self.err_b[0] = True
+                            self.we[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 13:
                             # Call finished
                             self.treset = True
                             #print("finish poke")

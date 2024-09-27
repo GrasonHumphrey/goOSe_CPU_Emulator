@@ -50,8 +50,6 @@
 
 This is a fully hardware-emulated CPU implemented in Python.  It includes a compiler to write in a 6502-like assembly language, and a basic OS.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -81,9 +79,7 @@ To run the emulated OS, use:
   python Compiler.py compiler_input.txt run
   ```
 
-_For more examples and complete documentation, please refer to the [Documentation](https://example.com)_
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+_For more examples and complete documentation, please refer to the [Documentation](https://github.com/GrasonHumphrey/CPU_Python/tree/main/docs).  Compiler_Reference.md is probably the best place to start if you're programming._
 
 
 
@@ -93,5 +89,3 @@ _For more examples and complete documentation, please refer to the [Documentatio
 Grason Humphrey - gtiger43@gmail.com
 
 Project Link: [https://github.com/GrasonHumphrey/CPU_Python](https://github.com/GrasonHumphrey/CPU_Python)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
