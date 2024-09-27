@@ -4,7 +4,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/GrasonHumphrey/CPU_Python">
-    <img src="logo2.jpg" alt="Logo" width="80" height="80">
+    <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
 <h3 align="center">goOSe Python CPU</h3>
