@@ -515,7 +515,7 @@ class instruction_register_control:
         self.jp = False
         self.jc = False
         self.jnc = False
-        self.t = 0
+        self.t = -1
         self.treset = False
         self.ff = False
         self.tf = False
@@ -562,7 +562,7 @@ class instruction_register_control:
         #self.data[0] = 0
 
     def ResetState(self):
-        self.t = 0
+        self.t = -1
         self.treset = False
         self.ff = False
         self.tf = False
@@ -729,6 +729,7 @@ class instruction_register_control:
         # always @ posedge clk
         if (not self.prevclk[0]) and (self.clk[0]):
             self.ResetOutputs()
+            self.t += 1
             if self.linst:
                 # Load new instruction
                 self.ResetOpcodes()
@@ -746,12 +747,10 @@ class instruction_register_control:
                 #print ("op fetch")
                 if self.t == 0:
                     self.ResetOutputs()
-                    self.t = 1
                     self.eip[0] = True
                     self.ladd[0] = True
                     #print("****EIP load****")
                 elif self.t == 1:
-                    self.t = 2
                     self.ce[0] = True
                     self.linst = True
                 elif self.t == 2:
@@ -760,12 +759,11 @@ class instruction_register_control:
                     #print("Opcode: " + hex(self.data_bus[0]))
                     if self.ZeroOperandOpcode():
                         # Opcode with no operand, continue to execute
-                        self.t = 3
                         self.tf = True
                         #print("Zero operand opcode")
                     else:
                         # Fetch first operand for opcodes with 1 or more operands
-                        self.t = 0
+                        self.t = -1
                         self.ff = True
                         #print("More than zero operand opcode")
 
@@ -774,24 +772,17 @@ class instruction_register_control:
                 #print ("ff fetch")
                 if self.t == 0:
                     self.ResetOutputs()
-                    self.t = 1
                     self.eip[0] = True
                     self.ladd[0] = True
                 elif self.t == 1:
-                    self.t = 2
                     self.ce[0] = True
                     self.lt1[0] = True
                 elif self.t == 2:
                     self.count[0] = True
                     self.tf = True
                     self.ff = False
-                    if self.OneOperandOpcode():
-                        # Opcode with one operand, continue to execute
-                        self.t = 3
-                        #print("one op")
-                    else:
-                        #Fetch third operand
-                        self.t = 0
+                    if not self.OneOperandOpcode():
+                        self.t = -1
 
             # Second Operand Fetch
             elif self.tf:
@@ -799,21 +790,14 @@ class instruction_register_control:
                 #print("t: " + str(self.t))
                 if self.t == 0:
                     self.ResetOutputs()
-                    self.t = 1
                     self.eip[0] = True
                     self.ladd[0] = True
                 elif self.t == 1:
-                    self.t = 2
                     self.ce[0] = True
                     self.lt2[0] = True
                 elif self.t == 2:
-                    self.t = 3
                     self.count[0] = True
                 elif self.t >= 3:
-                    if self.t == 3:
-                        self.count[0] = False
-                        #print("Reset count")
-
                     # Execute
 
                     # MOV into A Immediate operation
@@ -822,17 +806,14 @@ class instruction_register_control:
                         if self.t == 3:
                             self.et[0] = True
                             self.lacc[0] = True
-                            self.t = 4
                         elif self.t == 4:
                             self.treset = True
                     
                     # MOV into B Immediate operation
                     elif self.mov and self.immedb:
-                        
                         if self.t == 3:
                             self.et[0] = True
                             self.lbuff[0] = True
-                            self.t = 4
                         elif self.t == 4:
                             #print("CF after MOV into B: " + str(self.cf[0]))
                             self.treset = True
@@ -840,12 +821,10 @@ class instruction_register_control:
                     # MOV A into MEM                        
                     elif self.mov and self.stora:
                         if self.t == 3:
-                            self.t = 4
                             self.et[0] = True
                             self.ladd[0] = True
                             #print("here")
                         elif self.t == 4:
-                            self.t = 5
                             self.eacc[0] = True
                             self.we[0] = True
                         elif self.t == 5:
@@ -853,13 +832,10 @@ class instruction_register_control:
                     
                     # MOV B into MEM
                     elif self.mov and self.storb:
-                        
                         if self.t == 3:
-                            self.t = 4
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.ebuff[0] = True
                             #print("Enable B")
                             #print("Count: " + str(self.count[0]))
@@ -871,12 +847,10 @@ class instruction_register_control:
                     elif self.mov and self.mema:
                         #print("MOV MEM into A")
                         if self.t == 3:
-                            self.t = 4
                             #print("Set LADD")
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             #print("Clear LADD")
                             self.ce[0] = True
                             self.lacc[0] = True
@@ -887,13 +861,10 @@ class instruction_register_control:
                     
                     # MOV MEM into B
                     elif self.mov and self.memb:
-                        
                         if self.t == 3:
-                            self.t = 4
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.ce[0] = True
                             self.lbuff[0] = True
                         elif self.t == 5:
@@ -903,34 +874,28 @@ class instruction_register_control:
                     elif self.mov and self.shr:
                         if self.t == 3:
                             # Save A
-                            self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
                         elif self.t == 4:
                             # Load lower byte of address into A
-                            self.t = 5
                             self.et[0] = True
                             self.lacc[0] = True
                         elif self.t == 5:
                             # Add A and B
-                            self.t = 6
                             self.lacc[0] = True
                             self.ealu[0] = True
                             self.sel[0] = 0
                         elif self.t == 6:
                             # Move result to temp1
-                            self.t = 7
                             #print("A+B: " + hex(self.data_bus[0]))
                             self.eacc[0] = True
                             self.lt1[0] = True
                         elif self.t == 7:
                             # Load high byte of address into A
-                            self.t = 8
                             self.lacc[0] = True
                             self.et_b[0] = True
                         elif self.t == 8:
                             # Decide if upper byte of BP needs to be incremented
-                            self.t = 9
                             #print("BP_B: " + hex(self.data_bus[0]))
                             if self.xf[0]:
                                 self.lacc[0] = True
@@ -943,18 +908,14 @@ class instruction_register_control:
                                     self.sel[0] = 4
                         elif self.t == 9:
                             # Move result to temp2
-                            self.t = 10
                             self.eacc[0] = True
                             self.lt2[0] = True
-
                         elif self.t == 10:
                             # Move temp into address reg
-                            self.t = 11
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 11:
                             # Write saved value of A and restore A
-                            self.t = 12
                             #print("Address: " + hex(self.adr_bus[0]))
                             self.err[0] = True
                             self.we[0] = True
@@ -969,29 +930,24 @@ class instruction_register_control:
                     elif self.mov and self.shl:
                         if self.t == 3:
                             # Load lower byte of address into A
-                            self.t = 4
                             self.et[0] = True
                             self.lacc[0] = True
                         elif self.t == 4:
                             # Add A and B
-                            self.t = 5
                             self.lacc[0] = True
                             self.ealu[0] = True
                             self.sel[0] = 0
                         elif self.t == 5:
                             # Move result to temp1
-                            self.t = 6
                             #print("A+B: " + hex(self.data_bus[0]))
                             self.eacc[0] = True
                             self.lt1[0] = True
                         elif self.t == 6:
                             # Load high byte of address into A
-                            self.t = 7
                             self.lacc[0] = True
                             self.et_b[0] = True
                         elif self.t == 7:
                             # Decide if upper byte of BP needs to be incremented
-                            self.t = 8
                             #print("BP_B: " + hex(self.data_bus[0]))
                             if self.xf[0]:
                                 self.lacc[0] = True
@@ -1004,18 +960,14 @@ class instruction_register_control:
                                     self.sel[0] = 4
                         elif self.t == 8:
                             # Move result to temp2
-                            self.t = 9
                             self.eacc[0] = True
                             self.lt2[0] = True
-
                         elif self.t == 9:
                             # Move temp into address reg
-                            self.t = 10
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 10:
                             # Read into A from MEM
-                            self.t = 11
                             #print("Address: " + hex(self.adr_bus[0]))
                             self.ce[0] = True
                             self.lacc[0] = True
@@ -1029,132 +981,108 @@ class instruction_register_control:
                     elif self.mov and self.decb:
                         if self.t == 3:
                             # Save A to RR1
-                            self.t = 4
                             self.eacc[0] = True
                             self.lrr1[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                             # Load 0 into T2
-                            self.t = 5
                             self.lt2[0] = True
                             self.data_bus[0] = 0x0
                         elif self.t == 5:
                             # Load temp into address reg
-                            self.t = 6
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 6:
                             # Read from MEM into A
-                            self.t = 7
                             self.ce[0] = True
                             self.lacc[0] = True
                         elif self.t == 7:
                             # Add offset in B to A, then save to RR2
-                            self.t = 8
                             self.ealu[0] = True
                             self.lrr2[0] = True
                             self.sel[0] = 0
                         elif self.t == 8:
                             # Load lower byte of address to A from T1
-                            self.t = 9
                             self.et[0] = True
                             self.lacc[0] = True
                         elif self.t == 9:
                             # Increment lower byte of address
-                            self.t = 10
                             self.ealu[0] = True
                             self.lt1[0] = True
                             self.sel[0] = 4
                         elif self.t == 10:
                             # Load incremented temp into address reg
-                            self.t = 11
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 11:
                             # Read from MEM into T2
-                            self.t = 12
                             self.ce[0] = True
                             self.lt2[0] = True
                         elif self.t == 12:
                             # Move saved address in RR2 to T1
-                            self.t = 13
                             self.err_b[0] = True
                             self.lt1[0] = True
                         elif self.t == 13:
                             # Load address in temp reg to address reg
-                            self.t = 14
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 14:
                             # Write stored A in RR1 to MEM and restore A
-                            self.t = 15
                             self.err[0] = True
                             self.we[0] = True
                             self.clc[0] = True
                             self.lacc[0] = True
                         elif self.t == 15:
                             # Finish STZ
-                            self.t = 16
                             self.treset = True
 
                     # LDZ <immed>: Load A from offset at B from given zero-page pointer address              
                     elif self.mov and self.deca:
                         if self.t == 3:
                             # Load 0 into T2
-                            self.t = 4
                             self.clc[0] = True
                             self.lt2[0] = True
                             self.data_bus[0] = 0x0
                         elif self.t == 4:
                             # Load temp into address reg
-                            self.t = 5
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 5:
                             # Read from MEM into A
-                            self.t = 6
                             self.ce[0] = True
                             self.lacc[0] = True
                         elif self.t == 6:
                             # Add offset in B to A, then save to RR2
-                            self.t = 7
                             self.ealu[0] = True
                             self.lrr2[0] = True
                             self.sel[0] = 0
                         elif self.t == 7:
                             # Load lower byte of address to A from T1
-                            self.t = 8
                             self.et[0] = True
                             self.lacc[0] = True
                         elif self.t == 8:
                             # Increment lower byte of address
-                            self.t = 9
                             self.ealu[0] = True
                             self.lt1[0] = True
                             self.sel[0] = 4
                         elif self.t == 9:
                             # Load incremented temp into address reg
-                            self.t = 10
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 10:
                             # Read from MEM into T2
-                            self.t = 11
                             self.ce[0] = True
                             self.lt2[0] = True
                         elif self.t == 11:
                             # Move saved address in RR2 to T1
-                            self.t = 12
                             self.err_b[0] = True
                             self.lt1[0] = True
                         elif self.t == 12:
                             # Load address in temp reg to address reg
-                            self.t = 13
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 13:
                             # Read MEM into A
-                            self.t = 14
                             self.lacc[0] = True
                             self.ce[0] = True
                             self.clc[0] = True
@@ -1166,65 +1094,53 @@ class instruction_register_control:
                     elif self.mov and self.inca:
                         if self.t == 3:
                             # Load 0 into T2
-                            self.t = 4
                             self.clc[0] = True
                             self.lt2[0] = True
                             self.data_bus[0] = 0x0
                         elif self.t == 4:
                             # Load Ar into T1
-                            self.t = 5
                             self.eacc[0] = True
                             self.lt1[0] = True
                         elif self.t == 5:
                             # Load temp into address reg
-                            self.t = 6
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 6:
                             # Read from MEM into A
-                            self.t = 7
                             self.ce[0] = True
                             self.lacc[0] = True
                         elif self.t == 7:
                             # Add offset in B to A, then save to RR2
-                            self.t = 8
                             self.ealu[0] = True
                             self.lrr2[0] = True
                             self.sel[0] = 0
                         elif self.t == 8:
                             # Load lower byte of address to A from T1
-                            self.t = 9
                             self.et[0] = True
                             self.lacc[0] = True
                         elif self.t == 9:
                             # Increment lower byte of address
-                            self.t = 10
                             self.ealu[0] = True
                             self.lt1[0] = True
                             self.sel[0] = 4
                         elif self.t == 10:
                             # Load incremented temp into address reg
-                            self.t = 11
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 11:
                             # Read from MEM into T2
-                            self.t = 12
                             self.ce[0] = True
                             self.lt2[0] = True
                         elif self.t == 12:
                             # Move saved address in RR2 to T1
-                            self.t = 13
                             self.err_b[0] = True
                             self.lt1[0] = True
                         elif self.t == 13:
                             # Load address in temp reg to address reg
-                            self.t = 14
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 14:
                             # Read MEM into A
-                            self.t = 15
                             #print("LDZ from address: " + hex(self.adr_bus[0]))
                             self.lacc[0] = True
                             self.ce[0] = True
@@ -1237,37 +1153,30 @@ class instruction_register_control:
                     elif self.add and self.immeda:
                         if self.t == 3:
                             # Save B reg
-                            self.t = 4
                             self.ebuff[0] = True
                             self.lrr1[0] = True
                         elif self.t == 4:
                             self.et[0] = True
                             self.lbuff[0] = True
-                            self.t = 5
                         elif self.t == 5:
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 0
-                            self.t = 6
                         elif self.t == 6:
                             # Restore B reg
                             self.lbuff[0] = True
                             self.err[0] = True
                             self.sel[0] = 0
-                            self.t = 7
                         elif self.t == 7:
                             self.treset = True
                             #print("Finish ADD Immediate")
                     
                     # ADD MEM
                     elif self.add and self.mema:
-                        
                         if self.t == 3:
-                            self.t = 4
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.ce[0] = True
                             self.lbuff[0] = True
                         elif self.t == 5:
@@ -1278,9 +1187,7 @@ class instruction_register_control:
                     
                     # ADD B to A
                     elif self.add and self.immedb:
-                        
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             #print("Add t=3")
@@ -1292,7 +1199,6 @@ class instruction_register_control:
                     # Clear carry flag
                     elif self.add and self.stora:
                         if self.t == 3:
-                            self.t = 4
                             self.clc[0] = True
                             #print(self.data_bus)
                         elif self.t == 4:
@@ -1302,38 +1208,31 @@ class instruction_register_control:
                     elif self.sub and self.immeda:
                         if self.t == 3:
                             # Save B reg
-                            self.t = 4
                             self.ebuff[0] = True
                             self.lrr1[0] = True
                         elif self.t == 4:
                             self.et[0] = True
                             self.lbuff[0] = True
-                            self.t = 5
                         elif self.t == 5:
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 1
-                            self.t = 6
                         elif self.t == 6:
                             # Restore B reg
                             self.lbuff[0] = True
                             self.err[0] = True
                             self.sel[0] = 0
-                            self.t = 7
                         elif self.t == 7:
                             self.treset = True
                             #print("Finish SUB immediate")
                     
                     # SUB MEM
                     elif self.sub and self.mema:
-                        
                         #print("sub mem")
                         if self.t == 3:
-                            self.t = 4
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.ce[0] = True
                             self.lbuff[0] = True
                         elif self.t == 5:
@@ -1344,10 +1243,8 @@ class instruction_register_control:
                     
                     # SUB B from A
                     elif self.sub and self.immedb:
-                        
                         #print("Sub A-B")
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 1
@@ -1357,18 +1254,14 @@ class instruction_register_control:
 
                     # Swap A and B
                     elif self.swp and self.mov:
-                        
                         if self.t == 3:
                             #print("Start SWP")
-                            self.t = 4
                             self.eacc[0] = True
                             self.lt1[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.ebuff[0] = True
                             self.lacc[0] = True
                         elif self.t == 5:
-                            self.t = 6
                             self.lbuff[0] = True
                             self.et[0] = True
                         elif self.t == 6:
@@ -1378,7 +1271,6 @@ class instruction_register_control:
                     # JMP (Jump unconditional)
                     elif self.jmp and self.mema:
                         if self.t == 3:
-                            self.t = 4
                             self.et[0] = True
                             self.lip[0] = True
                         elif self.t == 4:
@@ -1388,7 +1280,6 @@ class instruction_register_control:
                     elif self.jz and self.mema:
                         #print("JZ")
                         if self.t == 3:
-                            self.t = 4
                             if self.zf[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
@@ -1399,7 +1290,6 @@ class instruction_register_control:
                     # JNZ (Jump if not zero)
                     elif self.jnz and self.mema:
                         if self.t == 3:
-                            self.t = 4
                             if not self.zf[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
@@ -1410,7 +1300,6 @@ class instruction_register_control:
                     # JM (Jump if minus)
                     elif self.jm and self.mema:
                         if self.t == 3:
-                            self.t = 4
                             #print("Jump if minus check SF: " + str(self.sf[0]))
                             #print("Carry flag: " + str(self.cf[0]))
                             if self.sf[0]:
@@ -1422,7 +1311,6 @@ class instruction_register_control:
                     # JP (Jump if positive)
                     elif self.jp and self.mema:
                         if self.t == 3:
-                            self.t = 4
                             if not self.sf[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
@@ -1432,7 +1320,6 @@ class instruction_register_control:
                     # JC (Jump if carry)
                     elif self.jc and self.mema:
                         if self.t == 3:
-                            self.t = 4
                             if self.cf[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
@@ -1442,7 +1329,6 @@ class instruction_register_control:
                     # JNC (Jump if not carry)
                     elif self.jnc and self.mema:
                         if self.t == 3:
-                            self.t = 4
                             if not self.cf[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
@@ -1452,7 +1338,6 @@ class instruction_register_control:
                     # JOF (Jump if overflow)
                     elif self.jc and self.memb:
                         if self.t == 3:
-                            self.t = 4
                             if self.of[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
@@ -1462,7 +1347,6 @@ class instruction_register_control:
                     # JNOF (Jump if not overflow)
                     elif self.jnc and self.memb:
                         if self.t == 3:
-                            self.t = 4
                             if not self.of[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
@@ -1472,7 +1356,6 @@ class instruction_register_control:
                     # SHL (Left shift)
                     elif self.log and self.shl:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 2
@@ -1482,7 +1365,6 @@ class instruction_register_control:
                     # SHR (Right shift)
                     elif self.log and self.shr:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 3
@@ -1492,7 +1374,6 @@ class instruction_register_control:
                     # INC A (Increment A)
                     elif self.log and self.inca:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 4
@@ -1502,7 +1383,6 @@ class instruction_register_control:
                     # DEC A (Decrement A)
                     elif self.log and self.deca:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 5
@@ -1512,7 +1392,6 @@ class instruction_register_control:
                     # INC B (Increment B)
                     elif self.log and self.incb:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lbuff[0] = True
                             self.sel[0] = 6
@@ -1522,7 +1401,6 @@ class instruction_register_control:
                     # DEC B (Decrement B)
                     elif self.log and self.decb:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lbuff[0] = True
                             self.sel[0] = 7
@@ -1533,7 +1411,6 @@ class instruction_register_control:
                     # AND B (AND A and B)
                     elif self.log and self.mema:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 8
@@ -1544,15 +1421,12 @@ class instruction_register_control:
                     elif self.log and self.stora:
                         if self.t == 3:
                         # Save B reg
-                            self.t = 4
                             self.ebuff[0] = True
                             self.lrr1[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.et[0] = True
                             self.lbuff[0] = True
                         elif self.t == 5:
-                            self.t = 6
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 8
@@ -1561,14 +1435,12 @@ class instruction_register_control:
                             self.lbuff[0] = True
                             self.err[0] = True
                             self.sel[0] = 0
-                            self.t = 7
                         elif self.t == 7:
                             self.treset = True
                     
                     # OR B (OR A and B)
                     elif self.log and self.memb:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 9
@@ -1580,21 +1452,17 @@ class instruction_register_control:
                         if self.t == 3:
                             #print("Start OR immed")
                             # Save B reg
-                            self.t = 4
                             self.ebuff[0] = True
                             self.lrr1[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.et[0] = True
                             self.lbuff[0] = True
                         elif self.t == 5:
-                            self.t = 6
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 9
                         elif self.t == 6:
                             # Restore B reg
-                            self.t = 7
                             self.lbuff[0] = True
                             self.err[0] = True
                             self.sel[0] = 0
@@ -1605,7 +1473,6 @@ class instruction_register_control:
                     # XOR B (XOR A and B)
                     elif self.log and self.immeda:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 0xA
@@ -1616,16 +1483,13 @@ class instruction_register_control:
                     elif self.log and self.swp:
                         if self.t == 3:
                             # Save B reg
-                            self.t = 4
                             self.ebuff[0] = True
                             self.lrr1[0] = True
                         elif self.t == 4:
-                            self.t = 5
                             self.et[0] = True
                             self.lbuff[0] = True
                             #print("XOR enable lbuff")
                         elif self.t == 5:
-                            self.t = 6
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 0xA
@@ -1641,7 +1505,6 @@ class instruction_register_control:
                      # NOT (NOT A)
                     elif self.log and self.immedb:
                         if self.t == 3:
-                            self.t = 4
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.sel[0] = 0xB
@@ -1666,36 +1529,29 @@ class instruction_register_control:
                     elif self.jmp and self.stora:
                         if self.t == 3:
                             # Save A
-                            self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                             # Save B
-                            self.t = 5
                             self.lrr2[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
                             ## Load low byte of stack pointer into A
-                            self.t = 6
                             self.lacc[0] = True
                             self.esp[0] = True
                         elif self.t == 6:
                             # Load high byte of stack pointer into B
-                            self.t = 7
                             self.esp_b[0] = True
                             self.lbuff[0] = True
-
                         elif self.t == 7:
                             # Increment lower byte of stack pointer in A
-                            self.t = 8
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.lsp1[0] = True
                             self.sel[0] = 4
                         elif self.t == 8:
                             # Increment upper byte of stack pointer in B if carry
-                            self.t = 9
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -1703,27 +1559,21 @@ class instruction_register_control:
                                 self.sel[0] = 6
                         elif self.t == 9:
                             # Load new SP into address register
-                            self.t = 10
                             self.ladd[0] = True
                             self.esp[0] = True
                             self.clc[0] = True
-
                         elif self.t == 10:
                             # Write lower byte of IP to stack
-                            self.t = 11
                             self.we[0] = True
                             self.eip[0] = True
-
                         elif self.t == 11:
                             # Increment lower byte of stack pointer in A
-                            self.t = 12
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.lsp1[0] = True
                             self.sel[0] = 4
                         elif self.t == 12:
                             # Increment upper byte of stack pointer in B if carry
-                            self.t = 13
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -1731,19 +1581,16 @@ class instruction_register_control:
                                 self.sel[0] = 6
                         elif self.t == 13:
                             # Load new SP into address register
-                            self.t = 14
                             self.ladd[0] = True
                             self.esp[0] = True
                             self.clc[0] = True
                         elif self.t == 14:
                             # Write upper byte of IP to stack
-                            self.t = 15
                             self.we[0] = True
                             self.eip_b[0] = True
-
                         elif self.t == 15:
                             # Increment lower byte of stack pointer in A
-                            self.t = 16
+                            
                             #print(hex(self.data_bus[0]))
                             self.ealu[0] = True
                             self.lacc[0] = True
@@ -1751,7 +1598,6 @@ class instruction_register_control:
                             self.sel[0] = 4
                         elif self.t == 16:
                             # Increment upper byte of stack pointer in B if carry
-                            self.t = 17
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -1759,18 +1605,15 @@ class instruction_register_control:
                                 self.sel[0] = 6
                         elif self.t == 17:
                             # Load new SP into address register
-                            self.t = 18
                             self.ladd[0] = True
                             self.esp[0] = True
                             self.clc[0] = True
                         elif self.t == 18:
                             # Save lower byte of BP to stack
-                            self.t = 19
                             self.we[0] = True
                             self.ebp[0] = True
                         elif self.t == 19:
                             # Increment lower byte of stack pointer in A
-                            self.t = 20
                             #print("CALL saved lower BP: " + hex(self.data_bus[0]))
                             self.ealu[0] = True
                             self.lacc[0] = True
@@ -1778,7 +1621,6 @@ class instruction_register_control:
                             self.sel[0] = 4
                         elif self.t == 20:
                             # Increment upper byte of stack pointer in B if carry
-                            self.t = 21
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -1786,36 +1628,30 @@ class instruction_register_control:
                                 self.sel[0] = 6
                         elif self.t == 21:
                             # Load new SP into address register
-                            self.t = 22
                             self.ladd[0] = True
                             self.esp[0] = True
                             self.clc[0] = True
                         elif self.t == 22:
                             # Save upper byte of BP to stack
-                            self.t = 23
                             #print("CALL set new SP: " + hex(self.adr_bus[0]))
                             self.we[0] = True
                             self.ebp_b[0] = True
                         elif self.t == 23:
                             # Set BP to SP
-                            self.t = 24
                             #print("CALL saved upper BP: " + hex(self.data_bus[0]))
                             self.lbpa[0] = True
                             self.esp[0] = True
                         elif self.t == 24:
                             # Set IP to be call address
-                            self.t = 25
                             #print("CALL set new BP: " + hex(self.adr_bus[0]))
                             self.lip[0] = True
                             self.et[0] = True
                         elif self.t == 25:
                             # Restore A
-                            self.t = 26
                             self.err[0] = True
                             self.lacc[0] = True
                         elif self.t == 26:
                             # Restore B
-                            self.t = 27
                             self.err_b[0] = True
                             self.lbuff[0] = True
                         elif self.t == 27:
@@ -1826,43 +1662,34 @@ class instruction_register_control:
                     elif self.jmp and self.storb:
                         if self.t == 3:
                             # Save A
-                            self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                             # Save B
-                            self.t = 5
                             #print ("Saved A: " + hex(self.data_bus[0]))
                             self.lrr2[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
                             ## Load low byte of base pointer into A
-                            self.t = 6
                             #print ("Saved B: " + hex(self.data_bus[0]))
                             self.lacc[0] = True
                             self.ebp[0] = True
                         elif self.t == 6:
                             # Load high byte of base pointer into B
-                            self.t = 7
                             self.ebp_b[0] = True
                             self.lbuff[0] = True
-
                         elif self.t == 7:
                             # Load BP into address register
-                            self.t = 8
                             self.ladd[0] = True
                             self.ebp[0] = True
-
                         elif self.t == 8:
                             # Load upper byte of BP from stack into T2
-                            self.t = 9
                             self.ce[0] = True
                             self.lt2[0] = True
                             #print ("SP into ADR: " + hex(self.adr_bus[0]))
                         elif self.t == 9:
                             # Decrement lower byte of base pointer in A
-                            self.t = 10
                             #print("RET restored upper BP: " + hex(self.data_bus[0]))
                             self.ealu[0] = True
                             self.lacc[0] = True
@@ -1870,7 +1697,6 @@ class instruction_register_control:
                             self.sel[0] = 5
                         elif self.t == 10:
                             # Decrement upper byte of base pointer in B if carry
-                            self.t = 11
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -1878,17 +1704,14 @@ class instruction_register_control:
                                 self.sel[0] = 7
                         elif self.t == 11:
                             # Load BP into address register
-                            self.t = 12
                             self.ladd[0] = True
                             self.ebp[0] = True
                         elif self.t == 12:
                             # Load lower byte of BP from stack into T1
-                            self.t = 13
                             self.ce[0] = True
                             self.lt1[0] = True
                         elif self.t == 13:
                             # Decrement lower byte of base pointer in A
-                            self.t = 14
                             #print("RET restored lower BP: " + hex(self.data_bus[0]))
                             self.ealu[0] = True
                             self.lacc[0] = True
@@ -1896,7 +1719,6 @@ class instruction_register_control:
                             self.sel[0] = 5
                         elif self.t == 14:
                             # Decrement upper byte of stack pointer in B if carry
-                            self.t = 15
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -1904,50 +1726,41 @@ class instruction_register_control:
                                 self.sel[0] = 7
                         elif self.t == 15:
                             # Load BP into address register
-                            self.t = 16
                             self.ladd[0] = True
                             self.ebp[0] = True
                         elif self.t == 16:
                             # Load upper byte of IP from stack
-                            self.t = 17
                             self.ce[0] = True
                             self.lip2[0] = True
                         elif self.t == 17:
                             # Decrement lower byte of base pointer in A
-                            self.t = 18
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.lbp1[0] = True
                             self.sel[0] = 5
                         elif self.t == 18:
                             # Decrement upper byte of stack pointer in B if carry
-                            self.t = 19
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
                                 self.lbp2[0] = True
                                 self.sel[0] = 7
-
                         elif self.t == 19:
                             # Load BP into address register
-                            self.t = 20
                             self.ladd[0] = True
                             self.ebp[0] = True
                         elif self.t == 20:
                             # Load lower byte of IP from stack
-                            self.t = 21
                             self.ce[0] = True
                             self.lip1[0] = True
                         elif self.t == 21:
                             # Decrement lower byte of base pointer in A
-                            self.t = 22
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.lbp1[0] = True
                             self.sel[0] = 5
                         elif self.t == 22:
                             # Decrement upper byte of base pointer in B if carry
-                            self.t = 23
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -1955,24 +1768,20 @@ class instruction_register_control:
                                 self.sel[0] = 7
                         elif self.t == 23:
                             # Set SP to decremented BP
-                            self.t = 24
                             self.ebp[0] = True
                             self.lspa[0] = True
                         elif self.t == 24:
                             # Set BP to new saved BP in T
-                            self.t = 25
                             self.et[0] = True
                             self.lbpa[0] = True
                         elif self.t == 25:
                             # Restore A
-                            self.t = 26
                             #print("RET restored BP: " + hex(self.adr_bus[0]))
                             self.err[0] = True
                             self.lacc[0] = True
                             self.clc[0] = True
                         elif self.t == 26:
                             # Restore B
-                            self.t = 27
                             #print ("Restored A: " + hex(self.data_bus[0]))
                             self.err_b[0] = True
                             self.lbuff[0] = True
@@ -1985,39 +1794,32 @@ class instruction_register_control:
                     elif self.jmp and self.shl:
                         if self.t == 3:
                          # Save B
-                            self.t = 4
                             self.lrr1[0] = True
                             self.ebuff[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                             # Load low byte of base pointer into A
-                            self.t = 5
                             self.lacc[0] = True
                             self.ebp[0] = True
                         elif self.t == 5:
                             # Load offset into B
-                            self.t = 6
                             self.lbuff[0] = True
                             self.et[0] = True
                         elif self.t == 6:
                             # Add A and B
-                            self.t = 7
                             self.lacc[0] = True
                             self.ealu[0] = True
                             self.sel[0] = 0
                         elif self.t == 7:
                             # Move result to temp1
-                            self.t = 8
                             self.eacc[0] = True
                             self.lt1[0] = True
                         elif self.t == 8:
                             # Load BP2 into A
-                            self.t = 9
                             self.ebp_b[0] = True
                             self.lacc[0] = True
                         elif self.t == 9:
                             # Decide if upper byte of BP needs to be incremented
-                            self.t = 10
                             #print("BP_B: " + hex(self.data_bus[0]))
                             if self.xf[0]:
                                 #print("Carry")
@@ -2031,23 +1833,19 @@ class instruction_register_control:
                                     self.sel[0] = 4
                         elif self.t == 10:
                             # Move result to temp2
-                            self.t = 11
                             self.eacc[0] = True
                             self.lt2[0] = True
                         elif self.t == 11:
                             # Move temp into address reg
-                            self.t = 12
                             #print("ACC: " + hex(self.data_bus[0]))
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 12:
                             # Move output into A
-                            self.t = 13
                             self.lacc[0] = True
                             self.ce[0] = True
                         elif self.t == 13:
                             # Restore B
-                            self.t = 14
                             self.err[0] = True
                             self.lbuff[0] = True
                             self.clc[0] = True
@@ -2060,46 +1858,38 @@ class instruction_register_control:
                         #print("A reg peek")
                         if self.t == 3:
                             # Save A
-                            self.t = 4
                             self.lrr2[0] = True
                             self.eacc[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                          # Save B
-                            self.t = 5
                             #print("Saved A: " + hex(self.data_bus[0]))
                             self.lrr1[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
                             # Load low byte of base pointer into A
-                            self.t = 6
                             self.lacc[0] = True
                             self.ebp[0] = True
                         elif self.t == 6:
                             # Load offset into B
-                            self.t = 7
                             self.lbuff[0] = True
                             self.err_b[0] = True
                         elif self.t == 7:
                             # Add A and B
-                            self.t = 8
                             #print("Offset: " + hex(self.data_bus[0]))
                             self.lacc[0] = True
                             self.ealu[0] = True
                             self.sel[0] = 0
                         elif self.t == 8:
                             # Move result to temp1
-                            self.t = 9
                             self.eacc[0] = True
                             self.lt1[0] = True
                         elif self.t == 9:
                             # Load BP2 into A
-                            self.t = 10
                             self.ebp_b[0] = True
                             self.lacc[0] = True
                         elif self.t == 10:
                             # Decide if upper byte of BP needs to be incremented
-                            self.t = 11
                             #print("BP_B: " + hex(self.data_bus[0]))
                             if self.xf[0]:
                                 #print("Carry")
@@ -2113,24 +1903,19 @@ class instruction_register_control:
                                     self.sel[0] = 4
                         elif self.t == 11:
                             # Move result to temp2
-                            self.t = 12
                             self.eacc[0] = True
                             self.lt2[0] = True
                         elif self.t == 12:
                             # Move temp into address reg
-                            self.t = 13
                             #print("ACC: " + hex(self.data_bus[0]))
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 13:
                             # Move output into A
-                            self.t = 14
                             self.lacc[0] = True
                             self.ce[0] = True
-
                         elif self.t == 14:
                             # Restore B
-                            self.t = 15
                             self.err[0] = True
                             self.lbuff[0] = True
                             self.clc[0] = True
@@ -2142,45 +1927,37 @@ class instruction_register_control:
                     elif self.jmp and self.shr:
                         if self.t == 3:
                          # Save A to RR2
-                            self.t = 4
                             self.eacc[0] = True
                             self.lrr2[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                          # Save B to RR1
                             #print("Saved A: " + hex(self.data_bus[0]))
-                            self.t = 5
                             self.lrr1[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
                             # Load low byte of base pointer into A
-                            self.t = 6
                             self.lacc[0] = True
                             self.ebp[0] = True
                         elif self.t == 6:
                             # Load offset into B
-                            self.t = 7
                             self.lbuff[0] = True
                             self.et[0] = True
                         elif self.t == 7:
                             # Add A and B
-                            self.t = 8
                             self.lacc[0] = True
                             self.ealu[0] = True
                             self.sel[0] = 0
                         elif self.t == 8:
                             # Move result to temp1
-                            self.t = 9
                             self.eacc[0] = True
                             self.lt1[0] = True
                         elif self.t == 9:
                             # Load BP2 into A
-                            self.t = 10
                             self.ebp_b[0] = True
                             self.lacc[0] = True
                         elif self.t == 10:
                             # Decide if upper byte of BP needs to be incremented
-                            self.t = 11
                             #print("BP_B: " + hex(self.data_bus[0]))
                             if self.xf[0]:
                                 #print("Carry")
@@ -2194,24 +1971,20 @@ class instruction_register_control:
                                     self.sel[0] = 4
                         elif self.t == 11:
                             # Move result to temp2
-                            self.t = 12
                             self.eacc[0] = True
                             self.lt2[0] = True
                         elif self.t == 12:
                             # Move temp into address reg
-                            self.t = 13
                             #print("ACC: " + hex(self.data_bus[0]))
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 13:
                             # Write saved value of A and restore A
-                            self.t = 14
                             self.err_b[0] = True
                             self.we[0] = True
                             self.lacc[0] = True
                         elif self.t == 14:
                             # Restore B
-                            self.t = 15
                             #print("Saved A: " + hex(self.data_bus[0]))
                             self.err[0] = True
                             self.lbuff[0] = True
@@ -2225,36 +1998,30 @@ class instruction_register_control:
                     elif self.jmp and self.deca:
                         if self.t == 3:
                          # Save B
-                            self.t = 4
                             self.lrr1[0] = True
                             self.ebuff[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                             # Load stack pointer into address reg and A
-                            self.t = 5
                             self.lacc[0] = True
                             self.esp[0] = True
                             self.ladd[0] = True
                         elif self.t == 5:
                             # Move output into RR2
-                            self.t = 6
                             self.lrr2[0] = True
                             self.ce[0] = True
                         elif self.t == 6:
                             # Load high byte of stack pointer into B
-                            self.t = 7
                             self.esp_b[0] = True
                             self.lbuff[0] = True
                         elif self.t == 7:
                             # Decrement lower byte of stack pointer in A
-                            self.t = 8
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.lsp1[0] = True
                             self.sel[0] = 5
                         elif self.t == 8:
                             # Decrement upper byte of stack pointer in B if carry
-                            self.t = 9
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -2262,12 +2029,10 @@ class instruction_register_control:
                                 self.sel[0] = 7
                         elif self.t == 9:
                             # Move saved value from RR2 to A
-                            self.t = 10
                             self.err_b[0] = True
                             self.lacc[0] = True
                         elif self.t == 10:
                             # Restore B
-                            self.t = 11
                             self.err[0] = True
                             self.lbuff[0] = True
                             self.clc[0] = True
@@ -2279,35 +2044,29 @@ class instruction_register_control:
                     elif self.jmp and self.decb:
                         if self.t == 3:
                          # Save A
-                            self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                          # Save B
-                            self.t = 5
                             self.lrr2[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
                             # Load stack pointer lower byte into A
-                            self.t = 6
                             self.lacc[0] = True
                             self.esp[0] = True
                         elif self.t == 6:
                             # Load high byte of stack pointer into B
-                            self.t = 7
                             self.esp_b[0] = True
                             self.lbuff[0] = True
                         elif self.t == 7:
                             # Increment lower byte of stack pointer in A
-                            self.t = 8
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.lsp1[0] = True
                             self.sel[0] = 4
                         elif self.t == 8:
                             # Increment upper byte of stack pointer in B if carry
-                            self.t = 9
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -2315,18 +2074,15 @@ class instruction_register_control:
                                 self.sel[0] = 6
                         elif self.t == 9:
                             # Load stack pointer into address register
-                            self.t = 10
                             self.ladd[0] = True
                             self.esp[0] = True
                         elif self.t == 10:
                             # Write saved A in RR1 to SP and restore A
-                            self.t = 11
                             self.err[0] = True
                             self.we[0] = True
                             self.lacc[0] = True
                         elif self.t == 11:
                             # Restore B
-                            self.t = 12
                             self.err_b[0] = True
                             self.lbuff[0] = True
                             self.clc[0] = True
@@ -2339,35 +2095,29 @@ class instruction_register_control:
                     elif self.jmp and self.swp:
                         if self.t == 3:
                          # Save A
-                            self.t = 4
                             self.lrr1[0] = True
                             self.eacc[0] = True
                             self.clc[0] = True
                         elif self.t == 4:
                          # Save B
-                            self.t = 5
                             self.lrr2[0] = True
                             self.ebuff[0] = True
                         elif self.t == 5:
                             # Load stack pointer lower byte into A
-                            self.t = 6
                             self.lacc[0] = True
                             self.esp[0] = True
                         elif self.t == 6:
                             # Load high byte of stack pointer into B
-                            self.t = 7
                             self.esp_b[0] = True
                             self.lbuff[0] = True
                         elif self.t == 7:
                             # Increment lower byte of stack pointer in A
-                            self.t = 8
                             self.ealu[0] = True
                             self.lacc[0] = True
                             self.lsp1[0] = True
                             self.sel[0] = 4
                         elif self.t == 8:
                             # Increment upper byte of stack pointer in B if carry
-                            self.t = 9
                             if self.cf[0]:
                                 self.lbuff[0] = True
                                 self.ealu[0] = True
@@ -2375,23 +2125,19 @@ class instruction_register_control:
                                 self.sel[0] = 6
                         elif self.t == 9:
                             # Load stack pointer into address register
-                            self.t = 10
                             self.ladd[0] = True
                             self.esp[0] = True
                         elif self.t == 10:
                             # Write <immed> to SP
-                            self.t = 11
                             self.et[0] = True
                             self.we[0] = True
                         elif self.t == 11:
                             # Restore A
-                            self.t = 12
                             self.err[0] = True
                             self.lacc[0] = True
                             self.clc[0] = True
                         elif self.t == 12:
                             # Restore B
-                            self.t = 13
                             self.err_b[0] = True
                             self.lbuff[0] = True
                         elif self.t == 13:
