@@ -2165,40 +2165,43 @@ irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b
 
 display = Graphics_Display(charMem, screenMem, 0, canvas, SCREEN_WIDTH, SCREEN_HEIGHT, PIXEL_SCALE)
 
+screenFocus = True
 
 def key_handler(key: Key):
-    try:
-        if (key.char in charCodes[0]):
-            charCode = charCodes[1][charCodes[0].index(key.char)]
-            #print(hex(charCode))
-            # Keyboard inputs go in a 32-byte ring buffer
-            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
-            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
-            #print(hex(keyBufLoc))
-            ab.memory[keyBufLoc] = charCode
-    except AttributeError:
-        if (key == key.enter):
-            #print("Enter")
-            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
-            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
-            #print(hex(keyBufLoc))
-            ab.memory[keyBufLoc] = 0x00
-        elif (key == key.backspace):
-            #print("Backspace")
-            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
-            # Don't backspace past line return
-            if (not ab.memory[keyBufLoc] == 0):
+    if(screenFocus):
+    #if(True):
+        try:
+            if (key.char in charCodes[0]):
+                charCode = charCodes[1][charCodes[0].index(key.char)]
+                #print(hex(charCode))
+                # Keyboard inputs go in a 32-byte ring buffer
                 ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
                 keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
                 #print(hex(keyBufLoc))
-                ab.memory[keyBufLoc] = 0x1F
-                ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] - 2) & 0x1F) | (KEY_BUF_BASE & 0xFF)
-        elif (key == key.space):
-            #print("Enter")
-            ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
-            keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
-            #print(hex(keyBufLoc))
-            ab.memory[keyBufLoc] = 0x20
+                ab.memory[keyBufLoc] = charCode
+        except AttributeError:
+            if (key == key.enter):
+                #print("Enter")
+                ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+                keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+                #print(hex(keyBufLoc))
+                ab.memory[keyBufLoc] = 0x00
+            elif (key == key.backspace):
+                #print("Backspace")
+                keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+                # Don't backspace past line return
+                if (not ab.memory[keyBufLoc] == 0):
+                    ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+                    keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+                    #print(hex(keyBufLoc))
+                    ab.memory[keyBufLoc] = 0x1F
+                    ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] - 2) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+            elif (key == key.space):
+                #print("Enter")
+                ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
+                keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
+                #print(hex(keyBufLoc))
+                ab.memory[keyBufLoc] = 0x20
             
 
 listener = Listener(on_press=key_handler)
@@ -2287,6 +2290,7 @@ def TestBench2():
     #print("Start time: " + str(startTime))
     Toggle_Reset()
     global totalCycles
+    global screenFocus
     #while (totalCycles < 100000) and not systemHalt:
     while not systemHalt:
         totalCycles += 1
@@ -2295,7 +2299,9 @@ def TestBench2():
             totalCycles = 1
             display.update()
             #key_handler()
+            #print(focus)
             ws.update()
+            screenFocus = ws.focus_get()
             Dump_Memory()
 
     endTime = time.time_ns()
