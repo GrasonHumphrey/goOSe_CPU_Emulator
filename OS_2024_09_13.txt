@@ -1,3 +1,5 @@
+# KNOWN BUGS:
+
 # Text to code converter
 def @a 1
 def @b 2
@@ -39,6 +41,7 @@ def @9 39
 def @: 3A
 def @as 2A
 def @us 52
+def @bl 60
 
 # Location of next character to draw
 def cursor1 $00
@@ -65,11 +68,26 @@ def inbuf2 07
 def commandstart1 08
 def commandstart2 09
 
+def instr1 0A
+def instr2 0B
+
+def instr_base1 C0
+def instr_base2 0D
+
+set instr1 instr_base1
+set instr2 instr_base2
+
 str s_title "         g cpu emulator"
 str s_cmd "cmd>"
 str s_exit "exit"
 str s_commandnotrecognized "command not recognized."
 str s_cls "cls"
+str s_read "read"
+str s_os_read_error1 "error: 1st arg (address) must be 2 bytes"
+str s_os_read_error2 "error: 2nd arg (blocks) must be 1 byte"
+str s_write "write"
+str s_os_write_error2 "error: 2nd arg (data) must be 1 byte"
+str s_done "done."
 
 mov ar s_title1
 mov $text1 ar
@@ -107,15 +125,259 @@ jmp mainloop
 
 halt
 
-####### CLear Screen function ######
-# Clears the screen
-# TODO: Redraw UI and set cursor back to start
 
-func cls
-# Save Ar and Br
+####### Write to memory function #######
+# Writes one memory byte at a given location
+# Syntax: WRITE [address] [data]
+func os_write
+
+mov ar @_
+call readinput
+#io ar
+sub 4
+# Is the first argument 2 bytes?
+jz os_write_step1
+mov ar s_os_read_error11
+mov $text1 ar
+mov ar s_os_read_error12
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc os_write_step1
+mov br 0
+ldz $instr1
 push ar
+mov br 1
+ldz $instr1
+call chartohex
+mov $text2 ar
+
+mov br 2
+ldz $instr1
+push ar
+mov br 3
+ldz $instr1
+call chartohex
+mov $text1 ar
+
+mov ar $instr1
+add 5
+mov $instr1 ar
+mov ar @_
+call readinput
+io ar
+sub 1
+# Only one nibble given?
+jnz os_write_step2_notone
+# Push char 0 for high nibble
+push 30
+mov br 0
+ldz $instr1
+call chartohex
+#io ar
+jmp os_write_end
+
+loc os_write_step2_notone
+# Two nibbles given?
+sub 1
+jnz os_write_step2_err
+mov br 0
+ldz $instr1
+push ar
+mov br 1
+ldz $instr1
+call chartohex
+#io ar
+jmp os_write_end
+
+loc os_write_step2_err
+mov ar s_os_write_error21
+mov $text1 ar
+mov ar s_os_write_error22
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc os_write_end
+
+mov br 0
+stz $text1
+
+mov ar s_done1
+mov $text1 ar
+mov ar s_done2
+mov $text2 ar
+call printstr
+
+call newline
+call newline
+
+ret
+
+
+
+####### Read from memory function #######
+# Prints memory bytes to the screen
+# Syntax: READ [start] [#8 byte blocks]
+func os_read
+
+mov ar @_
+call readinput
+#io ar
+sub 4
+# Is the first argument 2 bytes?
+jz os_read_step1
+mov ar s_os_read_error11
+mov $text1 ar
+mov ar s_os_read_error12
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc os_read_step1
+mov br 0
+ldz $instr1
+push ar
+mov br 1
+ldz $instr1
+call chartohex
+mov $text2 ar
+
+mov br 2
+ldz $instr1
+push ar
+mov br 3
+ldz $instr1
+call chartohex
+mov $text1 ar
+
+mov ar $instr1
+add 5
+mov $instr1 ar
+mov ar @_
+call readinput
+#io ar
+add 0
+jnz os_read_nondefault
+# No second argument given, print default 1 block
+mov ar 1
+jmp os_read_end
+
+loc os_read_nondefault
+sub 1
+# Only one nibble given?
+jnz os_read_step2_notone
+# Push char 0 for high nibble
+push 30
+mov br 0
+ldz $instr1
+call chartohex
+#io ar
+jmp os_read_end
+
+loc os_read_step2_notone
+# Two nibbles given?
+sub 1
+jnz os_read_step2_err
+# Push char 0 for high nibble
+mov br 0
+ldz $instr1
+push ar
+mov br 1
+ldz $instr1
+call chartohex
+#io ar
+jmp os_read_end
+
+loc os_read_step2_err
+mov ar s_os_read_error21
+mov $text1 ar
+mov ar s_os_read_error22
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+loc os_read_end
+call dispmem
+call newline
+ret
+
+
+
+####### Read Input function #######
+# Arguments:
+# Ar: Char code to stop on
+# Returns:
+# Ar: Number of characters read before stop char
+# Local vars:
+# Peek 1: Stop char code
+# Peek 2: Number of chars read
+func readinput
+push ar
+
+mov br 0
 swp
 push ar
+swp
+
+loc readinput_start
+ldz $instr1
+#io ar
+# Get input char in Ar
+add 0
+jnz readinput_nonzero
+#io br
+swp
+ret
+
+loc readinput_nonzero
+sub 1f
+jnz readinput_nonbs
+swp
+ret
+
+loc readinput_nonbs
+clc
+add 1f
+swp
+# Save number of cycles
+poke 2
+# Get stop code
+peek 1
+sub br
+jnz readinput_nonstop
+# Stop code reached
+peek 2
+ret
+
+loc readinput_nonstop
+peek 2
+inc ar
+poke 2
+swp
+jmp readinput_start
+
+ret
+
+
+
+####### CLear Screen function ######
+# Clears the screen
+
+func os_cls
+# Save Ar and Br
+#push ar
+#swp
+#push ar
 
 mov ar CURSOR1_BASE
 mov cursor1 ar
@@ -126,7 +388,7 @@ mov br 0
 
 loc cls_blank
 # Blank the screen
-mov ar 20
+mov ar 00
 stz cursor1
 inc br
 jnz cls_blank
@@ -242,15 +504,34 @@ ret
 
 ####### PARSEINPUT function #######
 func parseinput
-# TODO: Fix strcompare
-#ret
+
+# Move command from ring buffer to instr
+mov br 0
+mov ar instr_base1
+mov $instr1 ar
+
+loc parseinput_start
+ldz $commandstart1
+stz $instr1
+mov ar $commandstart1
+inc ar
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+mov ar $instr1
+inc ar
+mov $instr1 ar
+jnz parseinput_start
+
+mov ar instr_base1
+mov $instr1 ar
 
 # Was exit typed?
 mov ar s_exit1
 mov $text1 ar
 mov ar s_exit2
 mov $text2 ar
-mov ar commandstart1
+mov ar instr1
 mov br @_
 call strequals
 add 0
@@ -261,11 +542,33 @@ mov ar s_cls1
 mov $text1 ar
 mov ar s_cls2
 mov $text2 ar
-mov ar commandstart1
+mov ar instr1
 mov br @_
 call strequals
 add 0
 jnz parseinput_cls
+
+# Was read typed?
+mov ar s_read1
+mov $text1 ar
+mov ar s_read2
+mov $text2 ar
+mov ar instr1
+mov br @_
+call strequals
+add 0
+jnz parseinput_read
+
+# Was write typed?
+mov ar s_write1
+mov $text1 ar
+mov ar s_write2
+mov $text2 ar
+mov ar instr1
+mov br @_
+call strequals
+add 0
+jnz parseinput_write
 
 # No recognized command
 mov ar s_commandnotrecognized1
@@ -284,11 +587,26 @@ halt
 
 # "CLS" typed
 loc parseinput_cls
-call cls
+call os_cls
+jmp parseinput_end
+
+# "READ" typed
+loc parseinput_read
+mov ar $instr1
+add 5
+mov $instr1 ar
+call os_read
+jmp parseinput_end
+
+# "WRITE" typed
+loc parseinput_write
+mov ar $instr1
+add 6
+mov $instr1 ar
+call os_write
 jmp parseinput_end
 
 loc parseinput_end
-
 mov ar $inbuf1
 inc ar
 and 1F
@@ -326,7 +644,6 @@ jnz keyprocess_bs
 mov ar @_
 call printchar
 call newline
-# TODO: Add input parsing call
 call parseinput
 
 mov ar s_cmd1
@@ -426,6 +743,59 @@ mov cursor1 ar
 mov ar cursor2
 add 0
 mov cursor2 ar
+ret
+
+
+####### CHARTOHEX function #######
+# Converts two chars to a single hex byte
+# Arguments:
+# Push 1 (peek FC): high-nibble char
+# Ar: low-nibble char
+# Returns:
+# Ar: hex byte
+func chartohex
+
+# Is low nibble hex letter?
+sub 7
+jm chartohex_low_hexletter
+# Not hex letter, so number. Convert char num to hex
+sub 29
+jmp chartohex_high_start
+
+loc chartohex_low_hexletter
+# Convert char hex letter to hex
+clc
+add 10
+
+loc chartohex_high_start
+# Move low nibble to Br
+swp
+# Get high nibble
+peek FC
+#io ar
+# Do same hex conversion on high nibble
+# Is high nibble hex letter?
+sub 7
+jm chartohex_high_hexletter
+# Not hex letter, so number. Convert char num to hex
+sub 29
+#io ar
+jmp chartohex_end
+
+loc chartohex_high_hexletter
+# Convert char hex letter to hex
+clc
+add 10
+
+loc chartohex_end
+# Shift high nibble up
+shl
+shl
+shl
+shl
+# OR with low nibble and return
+or br
+
 ret
 
 

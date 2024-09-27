@@ -1172,19 +1172,21 @@ class instruction_register_control:
                             self.et[0] = True
                             self.ladd[0] = True
                         elif self.t == 14:
-                            # Write stored A in RR1 to MEM
+                            # Write stored A in RR1 to MEM and restore A
                             self.t = 15
                             self.et[0] = False
                             self.ladd[0] = False
                             self.err[0] = True
                             self.we[0] = True
                             self.clc[0] = True
+                            self.lacc[0] = True
                         elif self.t == 15:
                             # Finish STZ
                             self.t = 16
                             self.err[0] = False
                             self.we[0] = False
                             self.clc[0] = False
+                            self.lacc[0] = False
                             self.treset = True
 
                     # LDZ <immed>: Load A from offset at B from given zero-page pointer address              

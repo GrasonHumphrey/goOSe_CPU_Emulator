@@ -1,5 +1,4 @@
 # KNOWN BUGS:
-# Enter exactly 29 characters, then enter, then "exit", then enter.  "exit" will not be recognized.  Something wrong with input ring buffer
 
 # Text to code converter
 def @a 1
@@ -69,14 +68,14 @@ def inbuf2 07
 def commandstart1 08
 def commandstart2 09
 
-def heap1 0A
-def heap2 0B
+def instr1 0A
+def instr2 0B
 
-def HEAPBASE1 00
-def HEAPBASE2 0C
+def instr_base1 C0
+def instr_base2 0D
 
-set heap1 HEAPBASE1
-set heap2 HEAPBASE2
+set instr1 instr_base1
+set instr2 instr_base2
 
 str s_title "         g cpu emulator"
 str s_cmd "cmd>"
@@ -149,26 +148,24 @@ ret
 
 loc os_write_step1
 mov br 0
-ldz $commandstart1
+ldz $instr1
 push ar
 mov br 1
-ldz $commandstart1
+ldz $instr1
 call chartohex
 mov $text2 ar
 
 mov br 2
-ldz $commandstart1
+ldz $instr1
 push ar
 mov br 3
-ldz $commandstart1
+ldz $instr1
 call chartohex
 mov $text1 ar
 
-mov ar $commandstart1
+mov ar $instr1
 add 5
-and 1F
-or KEYBUFBASE1
-mov $commandstart1 ar
+mov $instr1 ar
 mov ar @_
 call readinput
 
@@ -178,7 +175,7 @@ jnz os_write_step2_notone
 # Push char 0 for high nibble
 push 30
 mov br 0
-ldz $commandstart1
+ldz $instr1
 call chartohex
 #io ar
 jmp os_write_end
@@ -188,10 +185,10 @@ loc os_write_step2_notone
 sub 1
 jnz os_write_step2_err
 mov br 0
-ldz $commandstart1
+ldz $instr1
 push ar
 mov br 1
-ldz $commandstart1
+ldz $instr1
 call chartohex
 #io ar
 jmp os_write_end
@@ -246,33 +243,31 @@ ret
 
 loc os_read_step1
 mov br 0
-ldz $commandstart1
+ldz $instr1
 push ar
 mov br 1
-ldz $commandstart1
+ldz $instr1
 call chartohex
 mov $text2 ar
 
 mov br 2
-ldz $commandstart1
+ldz $instr1
 push ar
 mov br 3
-ldz $commandstart1
+ldz $instr1
 call chartohex
 mov $text1 ar
 
-mov ar $commandstart1
+mov ar $instr1
 add 5
-and 1F
-or KEYBUFBASE1
-mov $commandstart1 ar
+mov $instr1 ar
 mov ar @_
 call readinput
-io ar
+#io ar
 add 0
 jnz os_read_nondefault
-# No second argument given, print default 6 blocks
-mov ar 6
+# No second argument given, print default 1 block
+mov ar 1
 jmp os_read_end
 
 loc os_read_nondefault
@@ -282,7 +277,7 @@ jnz os_read_step2_notone
 # Push char 0 for high nibble
 push 30
 mov br 0
-ldz $commandstart1
+ldz $instr1
 call chartohex
 #io ar
 jmp os_read_end
@@ -293,10 +288,10 @@ sub 1
 jnz os_read_step2_err
 # Push char 0 for high nibble
 mov br 0
-ldz $commandstart1
+ldz $instr1
 push ar
 mov br 1
-ldz $commandstart1
+ldz $instr1
 call chartohex
 #io ar
 jmp os_read_end
@@ -335,7 +330,7 @@ push ar
 swp
 
 loc readinput_start
-ldz $commandstart1
+ldz $instr1
 #io ar
 # Get input char in Ar
 add 0
@@ -377,7 +372,6 @@ ret
 
 ####### CLear Screen function ######
 # Clears the screen
-# TODO: Redraw UI and set cursor back to start
 
 func os_cls
 # Save Ar and Br
@@ -510,15 +504,37 @@ ret
 
 ####### PARSEINPUT function #######
 func parseinput
-# TODO: Fix strcompare
-#ret
+
+# Move command from ring buffer to instr
+mov br 0
+mov ar instr_base1
+mov $instr1 ar
+
+loc parseinput_start
+ldz $commandstart1
+stz $instr1
+add 0
+jz parseinput_getin
+mov ar $commandstart1
+inc ar
+and 1F
+or KEYBUFBASE1
+mov $commandstart1 ar
+mov ar $instr1
+inc ar
+mov $instr1 ar
+jmp parseinput_start
+
+loc parseinput_getin
+mov ar instr_base1
+mov $instr1 ar
 
 # Was exit typed?
 mov ar s_exit1
 mov $text1 ar
 mov ar s_exit2
 mov $text2 ar
-mov ar commandstart1
+mov ar instr1
 mov br @_
 call strequals
 add 0
@@ -529,7 +545,7 @@ mov ar s_cls1
 mov $text1 ar
 mov ar s_cls2
 mov $text2 ar
-mov ar commandstart1
+mov ar instr1
 mov br @_
 call strequals
 add 0
@@ -540,7 +556,7 @@ mov ar s_read1
 mov $text1 ar
 mov ar s_read2
 mov $text2 ar
-mov ar commandstart1
+mov ar instr1
 mov br @_
 call strequals
 add 0
@@ -551,7 +567,7 @@ mov ar s_write1
 mov $text1 ar
 mov ar s_write2
 mov $text2 ar
-mov ar commandstart1
+mov ar instr1
 mov br @_
 call strequals
 add 0
@@ -579,21 +595,17 @@ jmp parseinput_end
 
 # "READ" typed
 loc parseinput_read
-mov ar $commandstart1
+mov ar $instr1
 add 5
-and 1F
-or KEYBUFBASE1
-mov $commandstart1 ar
+mov $instr1 ar
 call os_read
 jmp parseinput_end
 
 # "WRITE" typed
 loc parseinput_write
-mov ar $commandstart1
+mov ar $instr1
 add 6
-and 1F
-or KEYBUFBASE1
-mov $commandstart1 ar
+mov $instr1 ar
 call os_write
 jmp parseinput_end
 
@@ -605,6 +617,10 @@ or KEYBUFBASE1
 mov $commandstart1 ar
 mov ar $inbuf2
 mov $commandstart2 ar
+
+mov ar instr_base1
+mov $instr1 ar
+#io ar
 
 ret
 
