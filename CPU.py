@@ -2252,6 +2252,7 @@ def key_handler(key: Key):
                 key_log += '\n'
                 with open("key_log.txt", "a") as file:
                     file.write(key_log)
+                    file.close()
                 key_log = ""
                 ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
                 keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
@@ -2326,7 +2327,7 @@ def Dump_Memory():
     with open("memory_dump.txt", "w") as file:
         i = 0
         numZeros = int(math.log10(RAM_SIZE_BYTES)) + 2
-        file.write("      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n")
+        file.write("       0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n")
         while i < RAM_SIZE_BYTES:
             file.write(f"{i:#0{numZeros}x}" + ": ")
             for j in range(16):
@@ -2334,6 +2335,7 @@ def Dump_Memory():
 
             file.write("\n")
             i += 16
+        file.close()
 
 
 
@@ -2368,6 +2370,7 @@ def TestBench2():
 
     with open("key_log.txt", "w") as file:
         file.write("")
+        file.close()
 
     #while (totalCycles < 100000) and not systemHalt:
     while not systemHalt:
