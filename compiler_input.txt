@@ -259,11 +259,12 @@ call chartohex
 mov $text1 ar
 
 mov ar $instr1
-add 5
+add 4
 mov $instr1 ar
-mov ar @_
-call readinput
+mov br 0
+ldz $instr1
 #io ar
+clc
 add 0
 jnz os_read_nondefault
 # No second argument given, print default 1 block
@@ -271,6 +272,13 @@ mov ar 1
 jmp os_read_end
 
 loc os_read_nondefault
+
+mov ar $instr1
+inc ar
+mov $instr1 ar
+mov ar @_
+call readinput
+
 sub 1
 # Only one nibble given?
 jnz os_read_step2_notone
