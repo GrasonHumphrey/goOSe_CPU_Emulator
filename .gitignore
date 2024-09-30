@@ -1,0 +1,4 @@
+key_log.txt
+memory_dump.txt
+compiled_output.txt
+*.tmp
