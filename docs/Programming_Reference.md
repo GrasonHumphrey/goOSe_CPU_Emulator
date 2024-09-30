@@ -46,6 +46,9 @@ Marks the start of a function.
 
 ## Instruction Set
 
+<details>
+  <summary><b>Memory Operations</b></summary>
+
 ### MOV [Ar/Br] [MEM]
 
 - Description: Move value at memory into A or B.
@@ -108,6 +111,18 @@ Marks the start of a function.
 - Opcode: MOV && DECB (0x0B)
 - Clock cycles: 19
 - Memory bytes: 2
+
+### IO [Ar/Br]
+
+- Description: Print value of A/B register to console
+- Opcode: IO && MEMA/MEMB (0x31/0x32)
+- Clock cycles: 4
+- Memory bytes: 1
+
+</details>
+
+<details>
+  <summary><b>Stack Operations</b></summary>
 
 ### PUSH Ar
 
@@ -172,6 +187,11 @@ Marks the start of a function.
 - Clock cycles: 28
 - Memory bytes: 1
 
+</details>
+
+<details>
+  <summary><b>ALU Operations</b></summary>
+
 ### ADD &lt;immed>
 
 - Description: Add given value to A.
@@ -206,69 +226,6 @@ Marks the start of a function.
 - Opcode: ADD && STORA (0x15)
 - Clock cycles: 5
 - Memory bytes: 1
-
-### JMP [MEM]
-
-- Description: Jump to memory location unconditionally
-- Opcode: JMP && MEMA (0x81)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JZ [MEM]
-
-- Description: Jump to memory location if ALU result is zero
-- Opcode: JZ && MEMA (0x91)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JNZ [MEM]
-
-- Description: Jump to memory location if ALU result is not zero
-- Opcode: JNZ && MEMA (0xA1)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JM [MEM]
-
-- Description: Jump to memory location if ALU result is less than zero (minus)
-- Opcode: JM && MEMA (0xB1)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JP [MEM]
-
-- Description: Jump to memory location if ALU result is greater than zero (positive)
-- Opcode: JP && MEMA (0xC1)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JC [MEM]
-
-- Description: Jump to memory location if carry occurred on last ALU operation
-- Opcode: JC && MEMA (0xD1)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JNC [MEM]
-
-- Description: Jump to memory location if carry did not occur on last ALU operation
-- Opcode: JNC && MEMA (0xE1)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JOF [MEM]
-
-- Description: Jump to memory location if overflow occurred on last ALU operation
-- Opcode: JC && MEMB (0xD2)
-- Clock cycles: 11
-- Memory bytes: 3
-
-### JNOF [MEM]
-
-- Description: Jump to memory location if overflow did not occur on last ALU operation
-- Opcode: JNC && MEMB (0xE2)
-- Clock cycles: 11
-- Memory bytes: 3
 
 ### SHL
 
@@ -347,12 +304,75 @@ Marks the start of a function.
 - Clock cycles: 5
 - Memory bytes: 1
 
-### IO [Ar/Br]
+</details>
 
-- Description: Print value of A/B register to console
-- Opcode: IO && MEMA/MEMB (0x31/0x32)
-- Clock cycles: 4
-- Memory bytes: 1
+<details>
+  <summary><b>Flow Control Operations</b></summary>
+
+### JMP [MEM]
+
+- Description: Jump to memory location unconditionally
+- Opcode: JMP && MEMA (0x81)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JZ [MEM]
+
+- Description: Jump to memory location if ALU result is zero
+- Opcode: JZ && MEMA (0x91)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JNZ [MEM]
+
+- Description: Jump to memory location if ALU result is not zero
+- Opcode: JNZ && MEMA (0xA1)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JM [MEM]
+
+- Description: Jump to memory location if ALU result is less than zero (minus)
+- Opcode: JM && MEMA (0xB1)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JP [MEM]
+
+- Description: Jump to memory location if ALU result is greater than zero (positive)
+- Opcode: JP && MEMA (0xC1)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JC [MEM]
+
+- Description: Jump to memory location if carry occurred on last ALU operation
+- Opcode: JC && MEMA (0xD1)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JNC [MEM]
+
+- Description: Jump to memory location if carry did not occur on last ALU operation
+- Opcode: JNC && MEMA (0xE1)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JOF [MEM]
+
+- Description: Jump to memory location if overflow occurred on last ALU operation
+- Opcode: JC && MEMB (0xD2)
+- Clock cycles: 11
+- Memory bytes: 3
+
+### JNOF [MEM]
+
+- Description: Jump to memory location if overflow did not occur on last ALU operation
+- Opcode: JNC && MEMB (0xE2)
+- Clock cycles: 11
+- Memory bytes: 3
+
+</details>
 
 
 ## Memory Architecture
@@ -360,7 +380,7 @@ Marks the start of a function.
 | Region | Default Use |
 | --------- | ----------------- |
 | 0x0000 - 0x00FF | Zero-page pointers |
-| 0x0100 - 0x09FF | OS ROM |
+| 0x0100 - 0x09FF | OS Code |
 | 0x0A00 - 0x0DBF | OS Constants |
 | 0x0DC0 - 0x0DDF | Cleaned input string |
 | 0x0DE0 - 0x0DFF | Key input ring buffer |
@@ -384,7 +404,7 @@ Example Stack:
 
 ## Screen Architecture
 
-### Screen Modes
+### Screen Memory
 The screen has the following display modes:
 - Mode 0: Character mode.  Predefined characters are printed to the screen.  Character codes to be printed in sequence are in memory location 0x2000-0x23FF
 - Mode 1: Pixel mode (in development)
@@ -392,14 +412,13 @@ The screen has the following display modes:
 Color can be set (in development)
 
 ### Character Set
-There are 255 character codes available, each with a size of 8x8 pixels.  A slightly modified version of the Commodore 64 character set is used:
+There are 255 character codes available, each with a size of 8x8 pixels.  Each character is encoded with 8 bytes, one byte per row.  A 0 means that the pixel is not filled in, a 1 means the pixel is filled in.  A slightly modified version of the Commodore 64 character set is used:
 
 
   <a href="https://github.com/GrasonHumphrey/CPU_Python">
-    <img src="images/char_set_1_edit.jpg" alt="Character Set 1">
+    <img src="../images/char_set_1_edit.jpg" alt="Character Set 1">
     </br>
-    <img src="images/char_set_2_edit.jpg" alt="Character Set 2">
+    <img src="../images/char_set_2_edit.jpg" alt="Character Set 2">
   </a>
 
-
-### Screen Memory
+  The characters can be modified at runtime by modifying the Character ROM (see <a href="#memory-architecture">Memory Architecture</a>).  This can be used to create custom characters for applications such as tile-based games.

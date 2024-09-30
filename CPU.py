@@ -92,6 +92,8 @@ PIXEL_SCALE = 2
 SCREEN_WIDTH = 512
 SCREEN_HEIGHT = 512
 
+key_log = ""
+
 canvas = Canvas(
     ws,
     height = SCREEN_HEIGHT,
@@ -2231,10 +2233,12 @@ display = Graphics_Display(charMem, screenMem, 0, canvas, SCREEN_WIDTH, SCREEN_H
 screenFocus = True
 
 def key_handler(key: Key):
+    global key_log
     if(screenFocus):
     #if(True):
         try:
             if (key.char in charCodes[0]):
+                key_log += key.char
                 charCode = charCodes[1][charCodes[0].index(key.char)]
                 #print(hex(charCode))
                 # Keyboard inputs go in a 32-byte ring buffer
@@ -2245,12 +2249,18 @@ def key_handler(key: Key):
         except AttributeError:
             if (key == key.enter):
                 #print("Enter")
+                key_log += '\n'
+                with open("key_log.txt", "a") as file:
+                    file.write(key_log)
+                key_log = ""
                 ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
                 keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
                 #print(hex(keyBufLoc))
                 ab.memory[keyBufLoc] = 0x00
             elif (key == key.backspace):
                 #print("Backspace")
+                if (len(key_log) > 0):
+                    key_log = key_log[:-1]
                 keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
                 # Don't backspace past line return
                 if (not ab.memory[keyBufLoc] == 0):
@@ -2260,7 +2270,8 @@ def key_handler(key: Key):
                     ab.memory[keyBufLoc] = 0x1F
                     ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] - 2) & 0x1F) | (KEY_BUF_BASE & 0xFF)
             elif (key == key.space):
-                #print("Enter")
+                #print("Space")
+                key_log += " "
                 ab.memory[KEY_BUF_PTR_LOC] = ((ab.memory[KEY_BUF_PTR_LOC] + 1) & 0x1F) | (KEY_BUF_BASE & 0xFF)
                 keyBufLoc = ab.memory[KEY_BUF_PTR_LOC] + (ab.memory[KEY_BUF_PTR_LOC+1] << 8)
                 #print(hex(keyBufLoc))
@@ -2354,6 +2365,10 @@ def TestBench2():
     Toggle_Reset()
     global totalCycles
     global screenFocus
+
+    with open("key_log.txt", "w") as file:
+        file.write("")
+
     #while (totalCycles < 100000) and not systemHalt:
     while not systemHalt:
         totalCycles += 1
