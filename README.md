@@ -12,10 +12,10 @@
   <p align="center">
     A Python-based CPU emulator, compiler, and OS
     <br />
-    <a href="https://github.com/GrasonHumphrey/CPU_Python"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/GrasonHumphrey/CPU_Python/tree/main/docs"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/GrasonHumphrey/CPU_Python">View Demo</a>
+    <a href="https://github.com/GrasonHumphrey/CPU_Python/tree/main/examples/goose_demo_1.gif">View Demo</a>
     ·
     <a href="https://github.com/GrasonHumphrey/CPU_Python/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
@@ -88,4 +88,4 @@ _For more examples and complete documentation, please refer to the [Documentatio
 
 Grason Humphrey - gtiger43@gmail.com
 
-Project Link: [https://github.com/GrasonHumphrey/CPU_Python](https://github.com/GrasonHumphrey/CPU_Python)
+Project Link: [https://github.com/GrasonHumphrey/goOSe_CPU_Emulator](https://github.com/GrasonHumphrey/goOSe_CPU_Emulatorn)

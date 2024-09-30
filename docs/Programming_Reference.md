@@ -412,7 +412,7 @@ The screen has the following display modes:
 Color can be set (in development)
 
 ### Character Set
-There are 255 character codes available, each with a size of 8x8 pixels.  Each character is encoded with 8 bytes, one byte per row.  A 0 means that the pixel is not filled in, a 1 means the pixel is filled in.  A slightly modified version of the Commodore 64 character set is used:
+There are 256 character codes available, each with a size of 8x8 pixels.  Each character is encoded with 8 bytes, one byte per row.  A 0 means that the pixel is not filled in, a 1 means the pixel is filled in.  A slightly modified version of the Commodore 64 character set is used:
 
 
   <a href="https://github.com/GrasonHumphrey/CPU_Python">
