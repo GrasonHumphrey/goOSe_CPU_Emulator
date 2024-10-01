@@ -66,6 +66,7 @@ ealu = [False]
 
 CHAR_MEM_SIZE = 0x1000
 SCREEN_MEM_SIZE = 0x2000
+COLOR_MEM_SIZE = 0x408
 RAM_SIZE_BYTES = 0x1000
 STACK_PTR_START = 0xDFF
 KEY_BUF_BASE = 0xDE0
@@ -79,6 +80,7 @@ charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', '
 charPressed = ''
 charMem = [0 for i in range(CHAR_MEM_SIZE)]
 screenMem = [0 for i in range(SCREEN_MEM_SIZE)]
+colorMem = [0 for i in range(COLOR_MEM_SIZE)]
 
 totalCycles = 0
 systemHalt = False
@@ -204,6 +206,8 @@ class address_buffer:
                     charMem[self.adr[0] - RAM_SIZE_BYTES] = self.data_bus[0]
                 elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
                     screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE] = self.data_bus[0]
+                elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE + COLOR_MEM_SIZE):
+                    colorMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE - SCREEN_MEM_SIZE] = self.data_bus[0]
                 else:
                     print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
                 #print("Memory write - " + hex(self.adr[0]) + ": " + hex(self.memory[self.adr[0]]))
@@ -218,6 +222,8 @@ class address_buffer:
                 self.data_bus[0] = charMem[self.adr[0] - RAM_SIZE_BYTES]
             elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
                 self.data_bus[0] = screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE]
+            elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE + COLOR_MEM_SIZE):
+                self.data_bus[0] = colorMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE - SCREEN_MEM_SIZE]
             else:
                 print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
 
@@ -2228,7 +2234,7 @@ acc = ab_register(lacc, eacc, clk, data_bus, acc_alu_out)
 buff = ab_register(lbuff, ebuff, clk, data_bus, buff_alu_out)
 irc = instruction_register_control(clk, data_bus, adr_bus, reset, go, eip, eip_b, ladd, ce, count, lt1, lt2, lta, we, lip, lip1, lip2, et, et_b, lsp1, lsp2, lspa, esp, esp_b, lbp1, lbp2, lbpa, ebp, ebp_b, lrr1, lrr2, lrra, err, err_b, lacc, eacc, lbuff, ebuff, sel, ealu, cf, zf, sf, of, xf, clc)
 
-display = Graphics_Display(charMem, screenMem, 0, canvas, SCREEN_WIDTH, SCREEN_HEIGHT, PIXEL_SCALE)
+display = Graphics_Display(charMem, screenMem, colorMem, 0, canvas, SCREEN_WIDTH, SCREEN_HEIGHT, PIXEL_SCALE)
 
 screenFocus = True
 

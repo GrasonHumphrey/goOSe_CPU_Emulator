@@ -386,7 +386,8 @@ Marks the start of a function.
 | 0x0DE0 - 0x0DFF | Key input ring buffer |
 | 0x0E00 - 0x0FFF | Stack |
 | 0x1000 - 0x1FFF | Character ROM |
-| 0x2000 - 0x3FFF | Screen Memory |
+| 0x2000 - 0x3FFF | Screen RAM |
+| 0x4000 - 0x4408 | Color RAM |
 
 ## Stack Architecture
 Example Stack:
@@ -404,12 +405,51 @@ Example Stack:
 
 ## Screen Architecture
 
-### Screen Memory
+### Screen RAM
 The screen has the following display modes:
-- Mode 0: Character mode.  Predefined characters are printed to the screen.  Character codes to be printed in sequence are in memory location 0x2000-0x23FF
-- Mode 1: Pixel mode (in development)
+- Mode 0: High-res Character mode.  Predefined characters are printed to the screen.  Character codes to be printed in sequence are in memory location 0x2000-0x23FF
+- Mode 1: Multicolor Character mode.  Each character can have one of four set colors.
+- Mode 2: Extended Background color mode.
+- Mode 3: High-res Bitmap mode.
+- Mode 4: Multicolor Bitmap mode.
 
-Color can be set (in development)
+
+### Color RAM
+Color RAM holds the color for each character displayed on the screen, as well as some additional data.  Each byte of Color RAM corresponds to one screen character position.  Only the lowest 4 bits of each Color RAM byte are used.
+
+4 color registers are also available.  Color register 1 sets the screen background color.  Color register 2 sets the default text color.  Color registers 3 and 4 are additional color registers used in multicolor modes.
+
+| Address | Function |
+|-------|------|
+| 0x4000 - 0x4400 | Character color data |
+| 0x4400 | Screen mode register |
+| 0x4401 | Color register 1 (Background) |
+| 0x4402 | Color register 2 (Default) |
+| 0x4403 | Color register 3 |
+| 0x4404 | Color register 4 |
+
+The following colors can be set:
+
+| Color | Code |
+|-------|------|
+| Black | 0x0 |
+| White | 0x1 |
+| Red | 0x2 |
+| Cyan | 0x3 |
+| Purple | 0x4 |
+| Green | 0x5 |
+| Blue | 0x6 |
+| Yellow | 0x7 |
+| Orange | 0x8 |
+| Brown | 0x9 |
+| Light red | 0xA |
+| Dark grey | 0xB |
+| Med grey | 0xC |
+| Light green | 0xD |
+| Light blue | 0xE |
+| Light grey | 0xF |
+
+
 
 ### Character Set
 There are 256 character codes available, each with a size of 8x8 pixels.  Each character is encoded with 8 bytes, one byte per row.  A 0 means that the pixel is not filled in, a 1 means the pixel is filled in.  A slightly modified version of the Commodore 64 character set is used:
