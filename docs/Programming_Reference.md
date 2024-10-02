@@ -704,8 +704,8 @@ Example Stack:
 
 ### Screen RAM
 The screen has the following display modes:
-- Mode 0: High-res Character mode.  Predefined characters are printed to the screen.  Character codes to be printed in sequence are in memory location 0x2000-0x23FF
-- Mode 1: Multicolor Character mode.  Each character can have one of four set colors.
+- Mode 0: High-res Character mode.  Predefined 8x8 pixel characters are printed to the screen.  Character codes to be printed in sequence are in memory location 0x2000-0x23FF.  Each character can be given a single color by setting the corresponding byte in Color RAM (0x4000-0x43FF).
+- Mode 1: Multicolor Character mode.  Each character can have four colors (background + 3 foreground colors), defined by the 4 color registers in Color RAM.  Each pair of bits in Character ROM corresponds to two horizontal pixels with the same color, giving an effective character resolution of 4x8 pixels.
 - Mode 2: Extended Background color mode.
 - Mode 3: High-res Bitmap mode.
 - Mode 4: Multicolor Bitmap mode.
@@ -714,16 +714,16 @@ The screen has the following display modes:
 ### Color RAM
 Color RAM holds the color for each character displayed on the screen, as well as some additional data.  Each byte of Color RAM corresponds to one screen character position.  Only the lowest 4 bits of each Color RAM byte are used.
 
-4 color registers are also available.  Color register 1 sets the screen background color.  Color register 2 sets the default text color.  Color registers 3 and 4 are additional color registers used in multicolor modes.
+4 color registers are also available.  Color register 0 sets the screen background color.  Color register 1 sets the default text color.  Color registers 2 and 3 are additional color registers used in multicolor modes.
 
 | Address | Function |
 |-------|------|
-| 0x4000 - 0x4400 | Character color data |
+| 0x4000 - 0x43FF | Character color data |
 | 0x4400 | Screen mode register |
-| 0x4401 | Color register 1 (Background) |
-| 0x4402 | Color register 2 (Default) |
-| 0x4403 | Color register 3 |
-| 0x4404 | Color register 4 |
+| 0x4401 | Color register 0 (Background) |
+| 0x4402 | Color register 1 (Default) |
+| 0x4403 | Color register 2 |
+| 0x4404 | Color register 3 |
 
 The following colors can be set:
 

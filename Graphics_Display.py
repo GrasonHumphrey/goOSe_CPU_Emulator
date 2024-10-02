@@ -2,10 +2,10 @@ from array import array
 from tkinter import *
 
 screenModeLoc = 0x400
-colorLoc1 = 0x401
-colorLoc2 = 0x402
-colorLoc3 = 0x403
-colorLoc4 = 0x404
+colorLoc0 = 0x401
+colorLoc1 = 0x402
+colorLoc2 = 0x403
+colorLoc3 = 0x404
 
 class Graphics_Display:
 
@@ -91,19 +91,19 @@ class Graphics_Display:
         # Set screen mode to character
         self.colorMem[screenModeLoc] = mode
         # Set BG color to black and text to cyan
-        self.colorMem[colorLoc1] = 0x0
-        self.colorMem[colorLoc2] = 0x3
+        self.colorMem[colorLoc0] = 0x0
+        self.colorMem[colorLoc1] = 0x3
         self.oldColorMem = self.colorMem.copy()
 
         # Create all pixels and color RAM
         for i in range(0x400):
-            self.colorMem[i] = (self.colorMem[colorLoc2])
+            self.colorMem[i] = (self.colorMem[colorLoc1])
             #print(self.colorMem[i])
             charLine = 0
             while (charLine < 8):
                 for pixel in range(8):
                     # Set initial BG color
-                    newColor = self.GetColor(self.colorMem[colorLoc1])
+                    newColor = self.GetColor(self.colorMem[colorLoc0])
                     #print(newColor)
                     rect = self.canvas.create_rectangle(
                         (i*8*self.pixelScale) % self.width + pixel*self.pixelScale + 1, 
@@ -122,11 +122,13 @@ class Graphics_Display:
         #print(str(x & 1 << n != 0))
         return x & 1 << n != 0
     
-    
+    def get_bit_pair(self, x, pair):
+        #print ((x & (3 << (pair * 2))) >> (pair * 2))
+        return ((x & (3 << (pair * 2))) >> (pair * 2))
 
     def update(self):
         #self.mode = mode
-        if (self.colorMem[screenModeLoc] == 0):
+        if (self.colorMem[screenModeLoc] == 0 or self.colorMem[screenModeLoc] == 1):
 
             # Character graphics mode
             for i in range(0x400):
@@ -136,18 +138,38 @@ class Graphics_Display:
                     if (charCode != self.oldScreenMem[i] or 
                         self.charMem[8 * charCode:8 * charCode + 8] != self.oldCharMem[8 * charCode: 8 * charCode + 8] or 
                         self.colorMem[i] != self.oldColorMem[i] or 
-                        self.colorMem[colorLoc1] != self.oldColorMem[colorLoc1]):
+                        self.colorMem[colorLoc0] != self.oldColorMem[colorLoc0]):
                         # Only update pixel if either screen or character memory has been updated
                         #print(hex(charCode))
-                        for pixel in range(8):
-                            if (self.is_bit_set(self.charMem[8 * charCode + charLine], 7-pixel)):
+                        if self.colorMem[screenModeLoc] == 0:
+                            for pixel in range(8):
+                                fillColor = '#000000'
+                                if (self.is_bit_set(self.charMem[8 * charCode + charLine], 7-pixel)):
+                                    fillColor = self.GetColor(self.colorMem[i])
+                                else:
+                                    # Fill with BG color
+                                    fillColor = self.GetColor(self.colorMem[colorLoc0])
+                                self.canvas.itemconfig(self.pixels[i*64+charLine*8+pixel], fill=fillColor)
+                        elif self.colorMem[screenModeLoc] == 1:
+                            for pair in range(4):
+                                pairVal = self.get_bit_pair(self.charMem[8 * charCode + charLine], 3-pair)
+                                fillColor = '#000000'
+                                if (pairVal == 0):
+                                    # Fill with BG color
+                                    fillColor = self.GetColor(self.colorMem[colorLoc0])
+                                elif (pairVal == 1):
+                                    # Color 2
+                                    fillColor = self.GetColor(self.colorMem[colorLoc1])
+                                elif (pairVal == 2):
+                                    # Color 3
+                                    fillColor = self.GetColor(self.colorMem[colorLoc2])
+                                elif (pairVal == 3):
+                                    # Color 3
+                                    fillColor = self.GetColor(self.colorMem[colorLoc3])
+                                self.canvas.itemconfig(self.pixels[i*64+charLine*8+pair*2], fill=fillColor)
+                                self.canvas.itemconfig(self.pixels[i*64+charLine*8+pair*2+1], fill=fillColor)
 
-                                fillColor = self.GetColor(self.colorMem[i])
-                                self.canvas.itemconfig(self.pixels[i*64+charLine*8+pixel], fill=fillColor)
-                            else:
-                                # Fill with BG color
-                                fillColor = self.GetColor(self.colorMem[colorLoc1])
-                                self.canvas.itemconfig(self.pixels[i*64+charLine*8+pixel], fill=fillColor)
+
                     charLine += 1
                 self.oldScreenMem[i] = charCode
                 #self.oldColorMem[i] = self.colorMem[i]

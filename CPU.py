@@ -202,7 +202,7 @@ class address_buffer:
                 if (self.adr[0] < RAM_SIZE_BYTES):
                     self.memory[self.adr[0]] = self.data_bus[0]
                 elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE):
-                    print("char mem write")
+                    #print("char mem write")
                     charMem[self.adr[0] - RAM_SIZE_BYTES] = self.data_bus[0]
                 elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
                     screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE] = self.data_bus[0]

@@ -86,7 +86,7 @@ set instr2 instr_base2
 def colorLoc1 *4401
 def colorLoc2 *4402
 
-str s_title "         g cpu emulator"
+str s_title "      goose cpu emulator "
 str s_cmd "cmd>"
 str s_exit "exit"
 str s_commandnotrecognized "command not recognized."
@@ -98,11 +98,31 @@ str s_write "write"
 str s_os_write_error2 "error: 2nd arg (data) must be 1 byte"
 str s_done "done."
 
+# Make Goose character
+mov ar C
+mov *1330 ar
+mov ar E
+mov *1331 ar
+mov ar 8
+mov *1332 ar
+mov ar 78
+mov *1333 ar
+mov ar FC
+mov *1334 ar
+mov ar 7C
+mov *1335 ar
+mov ar 38
+mov *1336 ar
+mov ar 4C
+mov *1337 ar
+
 mov ar s_title1
 mov $text1 ar
 mov ar s_title2
 mov $text2 ar
 call printstr
+mov ar 66
+call printchar
 
 call newline
 
@@ -428,6 +448,8 @@ mov $text1 ar
 mov ar s_title2
 mov $text2 ar
 call printstr
+mov ar 66
+call printchar
 
 call newline
 
