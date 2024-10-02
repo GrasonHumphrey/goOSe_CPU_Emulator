@@ -82,6 +82,12 @@ To run the emulated OS, use:
 _For more examples and complete documentation, please refer to the [Documentation](https://github.com/GrasonHumphrey/CPU_Python/tree/main/docs).  Programming_Reference.md is probably the best place to start._
 
 
+To run the custom graphics editor, use:
+
+  ```sh
+  python Graphics_Editor_GUI.py
+  ```
+
 
 <!-- CONTACT -->
 ## Contact

@@ -706,9 +706,9 @@ Example Stack:
 The screen has the following display modes:
 - Mode 0: High-res Character mode.  Predefined 8x8 pixel characters are printed to the screen.  Character codes to be printed in sequence are in memory location 0x2000-0x23FF.  Each character can be given a single color by setting the corresponding byte in Color RAM (0x4000-0x43FF).
 - Mode 1: Multicolor Character mode.  Each character can have four colors (background + 3 foreground colors), defined by the 4 color registers in Color RAM.  Each pair of bits in Character ROM corresponds to two horizontal pixels with the same color, giving an effective character resolution of 4x8 pixels.
-- Mode 2: Extended Background color mode.
-- Mode 3: High-res Bitmap mode.
-- Mode 4: Multicolor Bitmap mode.
+- Mode 2: Extended Background color mode. (In development)
+- Mode 3: High-res Bitmap mode. (In development)
+- Mode 4: Multicolor Bitmap mode. (In development)
 
 
 ### Color RAM
@@ -758,4 +758,5 @@ There are 256 character codes available, each with a size of 8x8 pixels.  Each c
     <img src="../images/char_set_2_edit.jpg" alt="Character Set 2">
   </a>
 
-  The characters can be modified at runtime by modifying the Character ROM (see <a href="#memory-architecture">Memory Architecture</a>).  This can be used to create custom characters for applications such as tile-based games.
+  The characters can be modified at runtime by modifying the Character ROM (see <a href="#memory-architecture">Memory Architecture</a>).  This can be used to create custom characters for applications such as tile-based games.  Graphics_Editor_GUI.py is a custom program to quickly create and view custom characters.
+  
