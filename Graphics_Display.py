@@ -127,10 +127,6 @@ class Graphics_Display:
     def update(self):
         #self.mode = mode
         if (self.colorMem[screenModeLoc] == 0):
-            #if (self.colorMem[colorLoc1] & 0xF0 != self.oldColor & 0xF0):
-            #    self.oldColor = (self.oldColor & 0x0F) | (self.colorMem[colorLoc1] & 0xF0)
-            #    newColor = self.GetColor(self.colorMem[colorLoc1] & 0xF0 >> 4)
-            #    self.canvas.configure(background=newColor)
 
             # Character graphics mode
             for i in range(0x400):
@@ -145,9 +141,6 @@ class Graphics_Display:
                         #print(hex(charCode))
                         for pixel in range(8):
                             if (self.is_bit_set(self.charMem[8 * charCode + charLine], 7-pixel)):
-                                if (charCode != self.oldScreenMem[i]):
-                                    # New character typed, use default text color
-                                    self.colorMem[i] = (self.colorMem[colorLoc2])
 
                                 fillColor = self.GetColor(self.colorMem[i])
                                 self.canvas.itemconfig(self.pixels[i*64+charLine*8+pixel], fill=fillColor)

@@ -44,8 +44,8 @@ def @us 52
 def @bl 60
 
 # Location of next character to draw
-def cursor1 $00
-def cursor2 $01
+def cursor1 00
+def cursor2 01
 
 def CURSOR1_BASE 00
 def CURSOR2_BASE 20
@@ -82,6 +82,9 @@ set jump2 01
 
 set instr1 instr_base1
 set instr2 instr_base2
+
+def colorLoc1 *4401
+def colorLoc2 *4402
 
 str s_title "         g cpu emulator"
 str s_cmd "cmd>"
@@ -394,21 +397,21 @@ func os_cls
 #push ar
 
 mov ar CURSOR1_BASE
-mov cursor1 ar
+mov $cursor1 ar
 mov ar CURSOR2_BASE
-mov cursor2 ar
+mov $cursor2 ar
 
 mov br 0
 
 loc cls_blank
 # Blank the screen
 mov ar 00
-stz cursor1
+stz $cursor1
 inc br
 jnz cls_blank
-mov ar cursor2
+mov ar $cursor2
 inc ar
-mov cursor2 ar
+mov $cursor2 ar
 sub CURSOR2_BASE
 sub 4
 #io ar
@@ -416,9 +419,9 @@ jnz cls_blank
 
 # Redraw UI
 mov ar CURSOR1_BASE
-mov cursor1 ar
+mov $cursor1 ar
 mov ar CURSOR2_BASE
-mov cursor2 ar
+mov $cursor2 ar
 
 mov ar s_title1
 mov $text1 ar
@@ -682,20 +685,20 @@ jnz keyprocess_char
 clc
 mov ar @_
 call printchar
-mov ar cursor1
+mov ar $cursor1
 sub 2
-mov cursor1 ar
-mov ar cursor2
+mov $cursor1 ar
+mov ar $cursor2
 add 0
-mov cursor2 ar
+mov $cursor2 ar
 mov ar @_
 call printchar
-mov ar cursor1
+mov ar $cursor1
 dec ar
-mov cursor1 ar
-mov ar cursor2
+mov $cursor1 ar
+mov ar $cursor2
 add 0
-mov cursor2 ar
+mov $cursor2 ar
 mov ar $inbuf1
 sub 2
 and 1F
@@ -753,17 +756,17 @@ ret
 # Moves cursor to beginning of next line
 loc newline
 clc
-mov ar cursor1
+mov ar $cursor1
 not ar
 mov br 1F
 and br
-mov br cursor1
+mov br $cursor1
 add br
 add 1
-mov cursor1 ar
-mov ar cursor2
+mov $cursor1 ar
+mov ar $cursor2
 add 0
-mov cursor2 ar
+mov $cursor2 ar
 ret
 
 
@@ -847,7 +850,7 @@ add 3A
 
 loc printhex_end1
 mov br 0
-stz cursor1
+stz $cursor1
 
 peek 1
 
@@ -870,14 +873,14 @@ add 3A
 
 loc printhex_end2
 mov br 1
-stz cursor1
+stz $cursor1
 
-mov ar cursor1
+mov ar $cursor1
 add 2
-mov cursor1 ar
-mov ar cursor2
+mov $cursor1 ar
+mov ar $cursor2
 add 0
-mov cursor2 ar
+mov $cursor2 ar
 
 ret
 
@@ -931,16 +934,28 @@ ret
 ####### PRINTCHAR function #######
 # Prints a single character to the string passed in A reg
 func printchar
+
+# Print character to screen
 clc
 mov br 0
-stz cursor1
+stz $cursor1
 
-mov ar cursor1
+# Set character color to text default
+mov ar $cursor2
+add 20
+mov $cursor2 ar
+mov ar colorLoc2
+stz $cursor1
+mov ar $cursor2
+sub 20
+mov $cursor2 ar
+
+mov ar $cursor1
 inc ar
-mov cursor1 ar
-mov ar cursor2
+mov $cursor1 ar
+mov ar $cursor2
 add 0
-mov cursor2 ar
+mov $cursor2 ar
 ret
 
 
@@ -949,12 +964,12 @@ ret
 func printus
 mov ar @us
 call printchar
-mov ar cursor1
+mov ar $cursor1
 dec ar
-mov cursor1 ar
-mov ar cursor2
+mov $cursor1 ar
+mov ar $cursor2
 add 0
-mov cursor2 ar
+mov $cursor2 ar
 clc
 ret
 
@@ -971,15 +986,15 @@ loc startprint
 ldz $text1
 add 0
 jz endprint
-stz cursor1
+stz $cursor1
 inc br
 jmp startprint
 
 loc endprint
-mov ar cursor1
+mov ar $cursor1
 add br
-mov cursor1 ar
-mov ar cursor2
+mov $cursor1 ar
+mov ar $cursor2
 add 0
-mov cursor2 ar
+mov $cursor2 ar
 ret

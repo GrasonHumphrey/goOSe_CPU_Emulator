@@ -3,4 +3,3 @@ memory_dump.txt
 compiled_output.txt
 *.tmp
 __pycache__/
-__pycache__/*
