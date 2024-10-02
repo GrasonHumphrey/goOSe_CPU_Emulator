@@ -176,14 +176,14 @@ Marks the start of a function.
 ### CALL [MEM]
 
 - Description: Call a function at given memory location.  Set new stack pointer and base pointer appropriately.
-- Opcode: JMP && STORA (0x85)
+- Opcode: JZ && INCB (0x9D)
 - Clock cycles: 34
 - Memory bytes: 3
 
 ### RET
 
 - Description: Return from a function.  Set new stack pointer and base pointer appropriately.
-- Opcode: JMP && STORB (0x86)
+- Opcode: JZ && AUX (0x9E)
 - Clock cycles: 28
 - Memory bytes: 1
 
@@ -309,12 +309,47 @@ Marks the start of a function.
 <details>
   <summary><b>Flow Control Operations</b></summary>
 
+<details>
+<summary>&ensp;JMP: Unconditional jump</summary>
+
 ### JMP [MEM]
 
 - Description: Jump to memory location unconditionally
 - Opcode: JMP && MEMA (0x81)
 - Clock cycles: 11
 - Memory bytes: 3
+
+### JMPO &lt;immed>
+
+- Description: Jump to given offset from current memory location unconditionally
+- Opcode: JMP && IMMEDA (0x83)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JMPO Ar
+
+- Description: Jump to offset in A from current memory location unconditionally
+- Opcode: JMP && IMMEDB (0x84)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JMPZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer unconditionally
+- Opcode: JMP && STORA (0x85)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JMPZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A unconditionally
+- Opcode: JMP && STORB (0x86)
+- Clock cycles: 18
+- Memory bytes: 1
+</details>
+
+<details>
+<summary>&ensp;JZ: Jump if zero</summary>
 
 ### JZ [MEM]
 
@@ -323,12 +358,78 @@ Marks the start of a function.
 - Clock cycles: 11
 - Memory bytes: 3
 
+### JZO &lt;immed>
+
+- Description: Jump to given offset from current memory location if ALU result is zero
+- Opcode: JZ && IMMEDA (0x93)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JZO Ar
+
+- Description: Jump to offset in A from current memory location if ALU result is zero
+- Opcode: JZ && IMMEDB (0x94)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JZZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if ALU result is zero
+- Opcode: JZ && STORA (0x95)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JZZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if ALU result is zero
+- Opcode: JZ && STORB (0x96)
+- Clock cycles: 18
+- Memory bytes: 1
+
+</details>
+
+<details>
+<summary>&ensp;JNZ: Jump if not zero</summary>
+
 ### JNZ [MEM]
 
 - Description: Jump to memory location if ALU result is not zero
 - Opcode: JNZ && MEMA (0xA1)
 - Clock cycles: 11
 - Memory bytes: 3
+
+### JNZO &lt;immed>
+
+- Description: Jump to given offset from current memory location if ALU result is not zero
+- Opcode: JNZ && IMMEDA (0xA3)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JNZO Ar
+
+- Description: Jump to offset in A from current memory location if ALU result is not zero
+- Opcode: JNZ && IMMEDB (0xA4)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JNZZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if ALU result is not zero
+- Opcode: JNZ && STORA (0xA5)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JNZZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if ALU result is not zero
+- Opcode: JNZ && STORB (0xA6)
+- Clock cycles: 18
+- Memory bytes: 1
+
+</details>
+
+<details>
+<summary>&ensp;JM: Jump if less than zero (minus)</summary>
 
 ### JM [MEM]
 
@@ -337,12 +438,78 @@ Marks the start of a function.
 - Clock cycles: 11
 - Memory bytes: 3
 
+### JMO &lt;immed>
+
+- Description: Jump to given offset from current memory location if ALU result is less than zero (minus)
+- Opcode: JM && IMMEDA (0xB3)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JMO Ar
+
+- Description: Jump to offset in A from current memory location if ALU result is less than zero (minus)
+- Opcode: JM && IMMEDB (0xB4)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JMZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if ALU result is less than zero (minus)
+- Opcode: JM && STORA (0xB5)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JMZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if ALU result is less than zero (minus)
+- Opcode: JM && STORB (0xB6)
+- Clock cycles: 18
+- Memory bytes: 1
+
+</details>
+
+<details>
+<summary>&ensp;JP: Jump if greater than zero (positive)</summary>
+
 ### JP [MEM]
 
 - Description: Jump to memory location if ALU result is greater than zero (positive)
 - Opcode: JP && MEMA (0xC1)
 - Clock cycles: 11
 - Memory bytes: 3
+
+### JPO &lt;immed>
+
+- Description: Jump to given offset from current memory location if ALU result is greater than zero (positive)
+- Opcode: JP && IMMEDA (0xC3)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JPO Ar
+
+- Description: Jump to offset in A from current memory location if ALU result is greater than zero (positive)
+- Opcode: JP && IMMEDB (0xC4)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JPZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if ALU result is greater than zero (positive)
+- Opcode: JP && STORA (0xC5)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JPZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if ALU result is greater than zero (positive)
+- Opcode: JP && STORB (0xC6)
+- Clock cycles: 18
+- Memory bytes: 1
+
+</details>
+
+<details>
+<summary>&ensp;JC: Jump if carry occurred</summary>
 
 ### JC [MEM]
 
@@ -351,12 +518,78 @@ Marks the start of a function.
 - Clock cycles: 11
 - Memory bytes: 3
 
+### JCO &lt;immed>
+
+- Description: Jump to given offset from current memory location if carry occurred on last ALU operation
+- Opcode: JC && IMMEDA (0xD3)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JCO Ar
+
+- Description: Jump to offset in A from current memory location if carry occurred on last ALU operation
+- Opcode: JC && IMMEDB (0xD4)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JCZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if carry occurred on last ALU operation
+- Opcode: JC && STORA (0xD5)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JCZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if carry occurred on last ALU operation
+- Opcode: JC && STORB (0xD6)
+- Clock cycles: 18
+- Memory bytes: 1
+
+</details>
+
+<details>
+<summary>&ensp;JNC: Jump if carry did not occur</summary>
+
 ### JNC [MEM]
 
 - Description: Jump to memory location if carry did not occur on last ALU operation
 - Opcode: JNC && MEMA (0xE1)
 - Clock cycles: 11
 - Memory bytes: 3
+
+### JNCO &lt;immed>
+
+- Description: Jump to given offset from current memory location if carry did not occur on last ALU operation
+- Opcode: JNC && IMMEDA (0xE3)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JNCO Ar
+
+- Description: Jump to offset in A from current memory location if carry did not occur on last ALU operation
+- Opcode: JNC && IMMEDB (0xE4)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JNCZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if carry did not occur on last ALU operation
+- Opcode: JNC && STORA (0xE5)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JNCZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if carry did not occur on last ALU operation
+- Opcode: JNC && STORB (0xE6)
+- Clock cycles: 18
+- Memory bytes: 1
+
+</details>
+
+<details>
+<summary>&ensp;JOF: Jump if overflow occurred</summary>
 
 ### JOF [MEM]
 
@@ -365,12 +598,76 @@ Marks the start of a function.
 - Clock cycles: 11
 - Memory bytes: 3
 
+### JOFO &lt;immed>
+
+- Description: Jump to given offset from current memory location if overflow occurred on last ALU operation
+- Opcode: JC && SWP (0xD7)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JOFO Ar
+
+- Description: Jump to offset in A from current memory location if overflow occurred on last ALU operation
+- Opcode: JC && SHL (0xD8)
+- Clock cycles: 13
+- Memory bytes: 1
+
+### JOFZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if overflow occurred on last ALU operation
+- Opcode: JC && SHR (0xD9)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JOFZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if overflow occurred on last ALU operation
+- Opcode: JC && DECA (0xDA)
+- Clock cycles: 18
+- Memory bytes: 1
+
+</details>
+
+<details>
+<summary>&ensp;JNOF: Jump if overflow did not occur</summary>
+
 ### JNOF [MEM]
 
 - Description: Jump to memory location if overflow did not occur on last ALU operation
 - Opcode: JNC && MEMB (0xE2)
 - Clock cycles: 11
 - Memory bytes: 3
+
+
+### JNOFO &lt;immed>
+
+- Description: Jump to given offset from current memory location if overflow did not occur on last ALU operation
+- Opcode: JNC && SWP (0xE7)
+- Clock cycles: 16
+- Memory bytes: 2
+
+### JNOFO Ar
+
+- Description: Jump to offset in A from current memory location if overflow did not occur on last ALU operation
+- Opcode: JNC && SHL (0xE8)
+- Clock cycles: 11
+- Memory bytes: 3
+
+
+### JNOFZ [$ZP]
+
+- Description: Jump to memory location at given zero-page pointer if overflow did not occur on last ALU operation
+- Opcode: JNC && SHR (0xE9)
+- Clock cycles: 21
+- Memory bytes: 2
+
+### JNOFZ Ar
+
+- Description: Jump to memory location at zero-page pointer in A if overflow did not occur on last ALU operation
+- Opcode: JNC && DECA (0xEA)
+- Clock cycles: 18
+- Memory bytes: 1
+</details>
 
 </details>
 

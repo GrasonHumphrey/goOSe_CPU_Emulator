@@ -280,9 +280,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JMPO Ar
+                    cmdBytes.append("84")
                 else:
+                    # JMPO <immed>
                     cmdBytes.append("83")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jmpz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("85")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("86")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jz"):
                 # Jump if zero
@@ -298,9 +316,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JZO Ar
+                    cmdBytes.append("94")
                 else:
+                    # JZO <immed>
                     cmdBytes.append("93")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jzz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("95")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("96")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jnz"):
                 # Jump if not zero
@@ -316,9 +352,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JNZO Ar
+                    cmdBytes.append("a4")
                 else:
+                    # JNZO <immed>
                     cmdBytes.append("a3")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jnzz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("a5")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("a6")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jm"):
                 # Jump if not positive
@@ -334,9 +388,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JNZO Ar
+                    cmdBytes.append("b4")
                 else:
+                    # JNZO <immed>
                     cmdBytes.append("b3")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jmz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("b5")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("b6")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jp"):
                 # Jump if positive
@@ -352,9 +424,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JNZO Ar
+                    cmdBytes.append("c4")
                 else:
+                    # JNZO <immed>
                     cmdBytes.append("c3")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jpz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("c5")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("c6")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jc"):
                 # Jump if carry occurred
@@ -370,9 +460,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JNZO Ar
+                    cmdBytes.append("d4")
                 else:
+                    # JNZO <immed>
                     cmdBytes.append("d3")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jcz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("d5")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("d6")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jnc"):
                 # Jump if cary did not occur
@@ -388,9 +496,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JNZO Ar
+                    cmdBytes.append("e4")
                 else:
+                    # JNZO <immed>
                     cmdBytes.append("e3")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jncz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("e5")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("e6")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jof"):
                 # Jump if overflow occurred
@@ -406,9 +532,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JNZO Ar
+                    cmdBytes.append("d8")
                 else:
-                    cmdBytes.append("d4")
+                    # JNZO <immed>
+                    cmdBytes.append("d7")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jofz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("d9")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("da")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "jnof"):
                 # Jump if overflow did not occur
@@ -424,9 +568,27 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1][0] == "*" or ops[1][0] == "$"):
                     throwError("Cannot offset jump to memory location", line)
+                elif (ops[1] == "ar"):
+                    # JNZO Ar
+                    cmdBytes.append("e8")
                 else:
-                    cmdBytes.append("e4")
+                    # JNZO <immed>
+                    cmdBytes.append("e7")
                     cmdBytes.append(clean_operand(ops[1], line))
+
+            elif (ops[0] == "jnofz"):
+                # Unconditional jump to zero-page
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # JMPZ <immed>
+                    cmdBytes.append("e9")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # JMPZ Ar
+                    cmdBytes.append("ea")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "shl"):
                 # Left shift
@@ -560,7 +722,7 @@ for line in range(len(codeParts)):
                 # Call function
                 expectArgs = 2
                 if ((ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars)):
-                    cmdBytes.append("85")
+                    cmdBytes.append("9d")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
                     throwError("Can only call to memory location", line)
@@ -568,7 +730,7 @@ for line in range(len(codeParts)):
             elif (ops[0] == "ret"):
                 # Return from function
                 expectArgs = 1
-                cmdBytes.append("86")
+                cmdBytes.append("9e")
 
             elif (ops[0] == "peek"):
                 # Peek at offset from BP

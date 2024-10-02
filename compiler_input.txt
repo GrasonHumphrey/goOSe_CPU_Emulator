@@ -74,6 +74,12 @@ def instr2 0B
 def instr_base1 C0
 def instr_base2 0D
 
+def jump1 0C
+def jump2 0D
+
+set jump1 34
+set jump2 01
+
 set instr1 instr_base1
 set instr2 instr_base2
 
@@ -108,6 +114,13 @@ mov ar $keybuf1
 mov $inbuf1 ar
 mov ar $keybuf2
 mov $inbuf2 ar
+
+mov ar FE
+add 2
+mov ar jump1
+jzz ar
+io ar
+io br
 
 # Set commandstart to initial correct value
 mov ar $keybuf1

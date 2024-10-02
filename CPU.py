@@ -530,6 +530,7 @@ class instruction_register_control:
         self.tf = False
         #self.execute = False
         self.prevclk = [False]
+        self.shouldJump = False
 
     def ResetOutputs(self):
         self.eip[0] = False
@@ -576,6 +577,7 @@ class instruction_register_control:
         self.ff = False
         self.tf = False
         self.linst = False
+        self.shouldJump = False
         #self.execute = False
 
     def ResetOpcodes(self):
@@ -697,13 +699,31 @@ class instruction_register_control:
                 (self.log and self.immedb) or
                 (self.io and self.mema) or
                 (self.io and self.memb) or
-                (self.jmp and self.storb) or
                 (self.jmp and self.deca) or
                 (self.jmp and self.aux) or
                 (self.add and self.stora) or 
                 (self.jmp and self.decb) or
                 (self.mov and self.inca) or
-                (self.jmp and self.inca))
+                (self.jmp and self.inca) or
+                (self.jmp and self.immedb) or
+                (self.jz and self.immedb) or    # Jump to offset if zero
+                (self.jnz and self.immedb) or   # Jump to offset if non-zero
+                (self.jm and self.immedb) or    # Jump to offset if negative
+                (self.jp and self.immedb) or    # Jump to offset if positive
+                (self.jc and self.immedb) or    # Jump to offset if carry occurred
+                (self.jnc and self.immedb) or   # Jump to offset if carry did not occur
+                (self.jc and self.shl) or    # Jump to offset if carry occurred
+                (self.jnc and self.shl) or
+                (self.jmp and self.storb) or
+                (self.jz and self.storb) or    
+                (self.jnz and self.storb) or   
+                (self.jm and self.storb) or    
+                (self.jp and self.storb) or    
+                (self.jc and self.storb) or    
+                (self.jnc and self.storb) or   
+                (self.jc and self.deca) or    
+                (self.jnc and self.deca) or
+                (self.jz and self.aux))
 
     def OneOperandOpcode(self):
         return ((self.mov and self.immeda) or   # Immediate move into A
@@ -714,14 +734,24 @@ class instruction_register_control:
                 (self.sub and self.immeda) or   # Immediately subtract
                 (self.log and self.shr) or
                 (self.log and self.shl) or      # Left and right bit shift
+                (self.jmp and self.immeda) or
                 (self.jz and self.immeda) or    # Jump to offset if zero
                 (self.jnz and self.immeda) or   # Jump to offset if non-zero
                 (self.jm and self.immeda) or    # Jump to offset if negative
                 (self.jp and self.immeda) or    # Jump to offset if positive
                 (self.jc and self.immeda) or    # Jump to offset if carry occurred
                 (self.jnc and self.immeda) or   # Jump to offset if carry did not occur
-                (self.jc and self.immedb) or    # Jump to offset if overflow occurred
-                (self.jnc and self.immedb) or   # Jump to offset if overflow did not occur
+                (self.jc and self.swp) or    # Jump to offset if overflow occurred
+                (self.jnc and self.swp) or   # Jump to offset if overflow did not occur
+                (self.jmp and self.stora) or
+                (self.jz and self.stora) or    
+                (self.jnz and self.stora) or   
+                (self.jm and self.stora) or    
+                (self.jp and self.stora) or    
+                (self.jc and self.stora) or    
+                (self.jnc and self.stora) or   
+                (self.jc and self.shr) or    
+                (self.jnc and self.shr) or
                 (self.log and self.stora) or
                 (self.log and self.storb) or
                 (self.log and self.swp) or
@@ -1285,7 +1315,242 @@ class instruction_register_control:
                             self.lip[0] = True
                         elif self.t == 4:
                             self.treset = True
+       
+                    # JMPO <immed>
+                    elif self.jmp and self.immeda:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
                     
+                    # JMPO Ar
+                    elif self.jmp and self.immedb:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 0
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JMPZ [$ZP]
+                    elif self.jmp and self.stora:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            self.lip[0] = True
+                            self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JMPZ Ar
+                    elif self.jmp and self.storb:
+                        if self.t == 3:
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            self.lip[0] = True
+                            self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JZ (Jump if zero)
                     elif self.jz and self.mema:
                         #print("JZ")
@@ -1296,7 +1561,258 @@ class instruction_register_control:
                                 #print("Jump!")
                         elif self.t == 4:
                             self.treset = True
+
+                    # JZO <immed>
+                    elif self.jz and self.immeda:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (self.zf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
                     
+                    # JZO Ar
+                    elif self.jz and self.immedb:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (self.zf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JZZ [$ZP]
+                    elif self.jz and self.stora:
+                        if self.t == 3:
+                            self.shouldJump = self.zf[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JZZ Ar
+                    elif self.jz and self.storb:
+                        if self.t == 3:
+                            self.shouldJump = self.zf[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JNZ (Jump if not zero)
                     elif self.jnz and self.mema:
                         if self.t == 3:
@@ -1307,6 +1823,257 @@ class instruction_register_control:
                             self.treset = True
                             #print("Finish JNZ")
                     
+                    # JNZO <immed>
+                    elif self.jnz and self.immeda:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (not self.zf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
+
+                    # JNZO Ar
+                    elif self.jnz and self.immedb:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (not self.zf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JNZZ [$ZP]
+                    elif self.jnz and self.stora:
+                        if self.t == 3:
+                            self.shouldJump = not self.zf[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JNZZ Ar
+                    elif self.jnz and self.storb:
+                        if self.t == 3:
+                            self.shouldJump = not self.zf[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JM (Jump if minus)
                     elif self.jm and self.mema:
                         if self.t == 3:
@@ -1318,6 +2085,257 @@ class instruction_register_control:
                         elif self.t == 4:
                             self.treset = True
                     
+                    # JMO <immed>
+                    elif self.jm and self.immeda:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (self.sf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
+
+                    # JMO Ar
+                    elif self.jm and self.immedb:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (self.sf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JMZ [$ZP]
+                    elif self.jm and self.stora:
+                        if self.t == 3:
+                            self.shouldJump = self.sf[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JMZ Ar
+                    elif self.jm and self.storb:
+                        if self.t == 3:
+                            self.shouldJump = self.sf[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JP (Jump if positive)
                     elif self.jp and self.mema:
                         if self.t == 3:
@@ -1327,6 +2345,257 @@ class instruction_register_control:
                         elif self.t == 4:
                             self.treset = True
                     
+                    # JPO <immed>
+                    elif self.jp and self.immeda:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                            self.clc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (not self.sf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
+
+                    # JPO Ar
+                    elif self.jp and self.immedb:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (not self.sf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JPZ [$ZP]
+                    elif self.jp and self.stora:
+                        if self.t == 3:
+                            self.shouldJump = not self.sf[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JPZ Ar
+                    elif self.jp and self.storb:
+                        if self.t == 3:
+                            self.shouldJump = not self.sf[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JC (Jump if carry)
                     elif self.jc and self.mema:
                         if self.t == 3:
@@ -1336,6 +2605,257 @@ class instruction_register_control:
                         elif self.t == 4:
                             self.treset = True
                     
+                    # JCO <immed>
+                    elif self.jc and self.immeda:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (self.cf[0]):
+                                self.clc[0] = True
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
+
+                    # JCO Ar
+                    elif self.jc and self.immedb:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (self.cf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JCZ [$ZP]
+                    elif self.jc and self.stora:
+                        if self.t == 3:
+                            self.shouldJump = self.cf[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JCZ Ar
+                    elif self.jc and self.storb:
+                        if self.t == 3:
+                            self.shouldJump = self.cf[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JNC (Jump if not carry)
                     elif self.jnc and self.mema:
                         if self.t == 3:
@@ -1345,6 +2865,257 @@ class instruction_register_control:
                         elif self.t == 4:
                             self.treset = True
                     
+                    # JNCO <immed>
+                    elif self.jnc and self.immeda:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (not self.cf[0]):
+                                self.clc[0] = True
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
+
+                    # JNCO Ar
+                    elif self.jnc and self.immedb:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (not self.cf[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JNCZ [$ZP]
+                    elif self.jnc and self.stora:
+                        if self.t == 3:
+                            self.shouldJump = not self.cf[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JNCZ Ar
+                    elif self.jnc and self.storb:
+                        if self.t == 3:
+                            self.shouldJump = not self.cf[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JOF (Jump if overflow)
                     elif self.jc and self.memb:
                         if self.t == 3:
@@ -1354,13 +3125,515 @@ class instruction_register_control:
                         elif self.t == 4:
                             self.treset = True
                     
+                    # JOFO <immed>
+                    elif self.jc and self.swp:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (self.of[0]):
+                                self.clc[0] = True
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
+
+                    # JOFO Ar
+                    elif self.jc and self.shl:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (self.of[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JOFZ [$ZP]
+                    elif self.jc and self.shr:
+                        if self.t == 3:
+                            self.shouldJump = self.of[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JOFZ Ar
+                    elif self.jc and self.deca:
+                        if self.t == 3:
+                            self.shouldJump = self.of[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
                     # JNOF (Jump if not overflow)
-                    elif self.jnc and self.memb:
+                    elif self.jnc and self.swp:
                         if self.t == 3:
                             if not self.of[0]:
                                 self.et[0] = True
                                 self.lip[0] = True
                         elif self.t == 4:
+                            self.treset = True
+
+                    # JNOFO <immed>
+                    elif self.jnc and self.swp:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load offset into B
+                            self.et[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 6:
+                            # Load instruction pointer low byte into A
+                            self.eip[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 7:
+                            # Add A and B and save to temp
+                            if (not self.of[0]):
+                                self.clc[0] = True
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 8:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 9:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 10:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 11:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 12:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 13:
+                            self.treset = True
+
+                    # JNOFO Ar
+                    elif self.jnc and self.shl:
+                        if self.t == 3:
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load instruction pointer low byte into B
+                            self.eip[0] = True
+                            self.lbuff[0] = True
+                            self.clc[0] = True
+                        elif self.t == 6:
+                            # Add A and B and save to temp
+                            if (not self.of[0]):
+                                self.ealu[0] = True
+                                self.lt1[0] = True
+                                self.sel[0] = 0
+                            else:
+                                # Just load old IP into temp to avoid jump
+                                self.cf[0] = False
+                                self.lt1[0] = True
+                                self.eip[0] = True
+                        elif self.t == 7:
+                            # Load high byte of IP into A and temp
+                            self.lacc[0] = True
+                            self.lt2[0] = True
+                            self.eip_b[0] = True
+                        elif self.t == 8:
+                            # Increment high byte of IP if carry
+                            if self.xf[0]:
+                                #print("Carry")
+                                self.lt2[0] = True
+                                self.ealu[0] = True
+                                if self.sf[0]:
+                                    # Offset was negative, decrement A
+                                    self.sel[0] = 5
+                                else:
+                                    # Offset was positive, increment A
+                                    self.sel[0] = 4
+                        elif self.t == 9:
+                            # Set IP to new offset IP
+                            self.lip[0] = True
+                            self.et[0] = True
+                        elif self.t == 10:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 11:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 12:
+                            self.treset = True
+
+                    # JNOFZ [$ZP]
+                    elif self.jnc and self.shr:
+                        if self.t == 3:
+                            self.shouldJump = not self.of[0]
+                            # Save A
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from T1
+                            self.et[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
+                            self.treset = True
+
+                    # JNOFZ Ar
+                    elif self.jnc and self.deca:
+                        if self.t == 3:
+                            self.shouldJump = not self.of[0]
+                            # Save A and load A into T1
+                            self.eacc[0] = True
+                            self.lrr1[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 4:
+                            # Save B
+                            self.ebuff[0] = True
+                            self.lrr2[0] = True
+                        elif self.t == 5:
+                            # Load 0 into T2
+                            self.clc[0] = True
+                            self.lt2[0] = True
+                            self.data_bus[0] = 0x0
+                        elif self.t == 6:
+                            # Load temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 7:
+                            # Read from MEM into B
+                            self.ce[0] = True
+                            self.lbuff[0] = True
+                        elif self.t == 8:
+                            # Load lower byte of address to A from RR1
+                            self.err[0] = True
+                            self.lacc[0] = True
+                        elif self.t == 9:
+                            # Increment lower byte of address
+                            self.ealu[0] = True
+                            self.lt1[0] = True
+                            self.sel[0] = 4
+                        elif self.t == 10:
+                            # Load incremented temp into address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 11:
+                            # Read from MEM into T2
+                            self.ce[0] = True
+                            self.lt2[0] = True
+                        elif self.t == 12:
+                            # Move saved address in B to T1
+                            self.ebuff[0] = True
+                            self.lt1[0] = True
+                        elif self.t == 13:
+                            # Load address in temp reg to address reg
+                            self.et[0] = True
+                            self.ladd[0] = True
+                        elif self.t == 14:
+                            # Load new IP from memory
+                            if (self.shouldJump):
+                                self.lip[0] = True
+                                self.ce[0] = True
+                        elif self.t == 15:
+                            # Restore A
+                            self.lacc[0] = True
+                            self.err[0] = True
+                        elif self.t == 16:
+                            # Restore B
+                            self.lbuff[0] = True
+                            self.err_b[0] = True
+                        elif self.t == 17:
                             self.treset = True
 
                     # SHL (Left shift)
@@ -1536,7 +3809,7 @@ class instruction_register_control:
                             print("B REG: " + str(format(buff.data[0], '#x')))
 
                     # CALL Function
-                    elif self.jmp and self.stora:
+                    elif self.jz and self.incb:
                         if self.t == 3:
                             # Save A
                             self.lrr1[0] = True
@@ -1669,7 +3942,7 @@ class instruction_register_control:
                             self.treset = True
 
                     # Return from Function
-                    elif self.jmp and self.storb:
+                    elif self.jz and self.aux:
                         if self.t == 3:
                             # Save A
                             self.lrr1[0] = True
