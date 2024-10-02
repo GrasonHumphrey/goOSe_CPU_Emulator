@@ -138,7 +138,8 @@ class Graphics_Display:
                     if (charCode != self.oldScreenMem[i] or 
                         self.charMem[8 * charCode:8 * charCode + 8] != self.oldCharMem[8 * charCode: 8 * charCode + 8] or 
                         self.colorMem[i] != self.oldColorMem[i] or 
-                        self.colorMem[colorLoc0] != self.oldColorMem[colorLoc0]):
+                        self.colorMem[colorLoc0] != self.oldColorMem[colorLoc0] or
+                        self.colorMem[screenModeLoc] != self.oldColorMem[screenModeLoc]):
                         # Only update pixel if either screen or character memory has been updated
                         #print(hex(charCode))
                         if self.colorMem[screenModeLoc] == 0:
