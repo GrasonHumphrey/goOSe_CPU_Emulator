@@ -95,7 +95,7 @@ def Clear_Drawing():
     for i in range(8):
         for j in range (8):
             pixelData[i][j] = 0
-            color = get_color(0)
+            color = get_color(colors[0])
             canvas.itemconfig(i * 8 + j + 1, fill=color)
     Write_Output(outputText)
 
