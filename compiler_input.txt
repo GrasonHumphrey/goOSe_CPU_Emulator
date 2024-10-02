@@ -852,6 +852,16 @@ loc printhex_end1
 mov br 0
 stz $cursor1
 
+# Set character color to text default
+mov ar $cursor2
+add 20
+mov $cursor2 ar
+mov ar colorLoc2
+stz $cursor1
+mov ar $cursor2
+sub 20
+mov $cursor2 ar
+
 peek 1
 
 clc
@@ -874,6 +884,16 @@ add 3A
 loc printhex_end2
 mov br 1
 stz $cursor1
+
+# Set character color to text default
+mov ar $cursor2
+add 20
+mov $cursor2 ar
+mov ar colorLoc2
+stz $cursor1
+mov ar $cursor2
+sub 20
+mov $cursor2 ar
 
 mov ar $cursor1
 add 2
@@ -987,6 +1007,17 @@ ldz $text1
 add 0
 jz endprint
 stz $cursor1
+
+# Set character color to text default
+mov ar $cursor2
+add 20
+mov $cursor2 ar
+mov ar colorLoc2
+stz $cursor1
+mov ar $cursor2
+sub 20
+mov $cursor2 ar
+
 inc br
 jmp startprint
 
