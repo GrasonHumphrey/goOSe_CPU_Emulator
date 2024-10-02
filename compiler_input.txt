@@ -115,13 +115,6 @@ mov $inbuf1 ar
 mov ar $keybuf2
 mov $inbuf2 ar
 
-mov ar FE
-add 2
-mov ar jump1
-jzz ar
-io ar
-io br
-
 # Set commandstart to initial correct value
 mov ar $keybuf1
 inc ar
