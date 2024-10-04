@@ -67,12 +67,15 @@ ealu = [False]
 CHAR_MEM_SIZE = 0x1000
 SCREEN_MEM_SIZE = 0x2000
 COLOR_MEM_SIZE = 0x408
-RAM_SIZE_BYTES = 0x1000
+RAM_SIZE_BYTES = 0x8000
 STACK_PTR_START = 0xDFF
 KEY_BUF_BASE = 0xDE0
 KEY_BUF_PTR_LOC = 0x0004
 
 CODE_START_LOC = 0x100
+CHAR_MEM_LOC = 0x1000
+SCREEN_MEM_LOC = 0x2000
+COLOR_MEM_LOC = 0x4000
 
 charCodes = [['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ',  '>', '_', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ":", '(', ')'],
              [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x20,0x3E,0x52,0x2E,0x30,0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39, 0x3A,0x28,0x29]]
@@ -199,33 +202,37 @@ class address_buffer:
             if self.we[0]:
                 if self.data_bus[0] == 'x':
                     print("WARNING: Adress Buffer attempt write to memory with unassigned data_bus")
-                if (self.adr[0] < RAM_SIZE_BYTES):
-                    self.memory[self.adr[0]] = self.data_bus[0]
-                elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE):
+                
+                elif (self.adr[0] >= CHAR_MEM_LOC and self.adr[0] < CHAR_MEM_LOC + CHAR_MEM_SIZE):
                     #print("char mem write")
-                    charMem[self.adr[0] - RAM_SIZE_BYTES] = self.data_bus[0]
-                elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
-                    screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE] = self.data_bus[0]
-                elif (self.adr[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE + COLOR_MEM_SIZE):
-                    colorMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE - SCREEN_MEM_SIZE] = self.data_bus[0]
+                    charMem[self.adr[0] - CHAR_MEM_LOC] = self.data_bus[0]
+                elif (self.adr[0] >= SCREEN_MEM_LOC and self.adr[0] < SCREEN_MEM_LOC + SCREEN_MEM_SIZE):
+                    screenMem[self.adr[0] - SCREEN_MEM_LOC] = self.data_bus[0]
+                elif (self.adr[0] >= COLOR_MEM_LOC and self.adr[0] < COLOR_MEM_LOC + COLOR_MEM_SIZE):
+                    colorMem[self.adr[0] - COLOR_MEM_LOC] = self.data_bus[0]
                 else:
-                    print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
+                    try:
+                        self.memory[self.adr[0]] = self.data_bus[0]
+                    except:
+                        print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr[0]))
                 #print("Memory write - " + hex(self.adr[0]) + ": " + hex(self.memory[self.adr[0]]))
         self.prevclk[0] = self.clk[0]
         # always @ *
         if self.ce[0]:
             #print("ADR Buff out adr: " + hex(self.adr[0]))
             #print("ADR Buff out data: " + hex(self.memory[self.adr[0]]))
-            if (self.adr_bus[0] < RAM_SIZE_BYTES):
-                self.data_bus[0] = self.memory[self.adr[0]]
-            elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE):
-                self.data_bus[0] = charMem[self.adr[0] - RAM_SIZE_BYTES]
-            elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE):
-                self.data_bus[0] = screenMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE]
-            elif (self.adr_bus[0] < RAM_SIZE_BYTES + CHAR_MEM_SIZE + SCREEN_MEM_SIZE + COLOR_MEM_SIZE):
-                self.data_bus[0] = colorMem[self.adr[0] - RAM_SIZE_BYTES - CHAR_MEM_SIZE - SCREEN_MEM_SIZE]
+            if (self.adr[0] >= CHAR_MEM_LOC and self.adr[0] < CHAR_MEM_LOC + CHAR_MEM_SIZE):
+                self.data_bus[0] = charMem[self.adr[0] - CHAR_MEM_LOC]
+            elif (self.adr[0] >= SCREEN_MEM_LOC and self.adr[0] < SCREEN_MEM_LOC + SCREEN_MEM_SIZE):
+                self.data_bus[0] = screenMem[self.adr[0] - SCREEN_MEM_LOC]
+            elif (self.adr[0] >= COLOR_MEM_LOC and self.adr[0] < COLOR_MEM_LOC + COLOR_MEM_SIZE):
+                self.data_bus[0] = colorMem[self.adr[0] - COLOR_MEM_LOC]
             else:
-                print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
+                if (self.adr_bus[0] < RAM_SIZE_BYTES):
+                    try:
+                        self.data_bus[0] = self.memory[self.adr[0]]
+                    except:
+                        print("ERROR: Attempt to write memory outside range.  ADR: " + hex(self.adr_bus[0]))
 
 
 
@@ -2553,7 +2560,14 @@ def Dump_Memory():
         while i < RAM_SIZE_BYTES:
             file.write(f"{i:#0{numZeros}x}" + ": ")
             for j in range(16):
-                file.write(f"{ab.memory[i+j]:02x}" + " ")
+                if i+j >= CHAR_MEM_LOC and i+j < CHAR_MEM_LOC + CHAR_MEM_SIZE:
+                    file.write(f"{charMem[i+j-CHAR_MEM_LOC]:02x}" + " ")
+                elif i+j >= SCREEN_MEM_LOC and i+j < SCREEN_MEM_LOC + SCREEN_MEM_SIZE:
+                    file.write(f"{screenMem[i+j-SCREEN_MEM_LOC]:02x}" + " ")
+                elif i+j >= COLOR_MEM_LOC and i+j < COLOR_MEM_LOC + COLOR_MEM_SIZE:
+                    file.write(f"{colorMem[i+j-COLOR_MEM_LOC]:02x}" + " ")
+                else:
+                    file.write(f"{ab.memory[i+j]:02x}" + " ")
 
             file.write("\n")
             i += 16

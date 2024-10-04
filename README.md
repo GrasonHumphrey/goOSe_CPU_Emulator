@@ -76,7 +76,7 @@ Get Python3 from the website.  Required packages:
 To run the emulated OS, use:
 
   ```sh
-  python Compiler.py compiler_input.txt run
+  python Compiler.py --os=goOSe.txt --run=True
   ```
 
 _For more examples and complete documentation, please refer to the [Documentation](https://github.com/GrasonHumphrey/CPU_Python/tree/main/docs).  Programming_Reference.md is probably the best place to start._

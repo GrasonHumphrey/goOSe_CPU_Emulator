@@ -1,5 +1,7 @@
 import sys
 import re
+import argparse
+import os
 
 # All values must be in hex
 # # for comment
@@ -16,19 +18,26 @@ import re
 
 runAfterCompile = False
 
+
+DISK_START_LOC = 0x5000
+
 if __name__ == "__main__":
-    f = open(sys.argv[1], "r")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--os", type=str, default="goOSe.txt")
+    parser.add_argument("--run", type=bool, default=True)
+    parser.add_argument("--disk", type=str, default="")
+    args = parser.parse_args()
+    f = open(args.os, "r")
     code = f.read()
-    if (len(sys.argv) == 3):
-        if (sys.argv[2] == 1 or sys.argv[2] == "run"):
-            runAfterCompile = True
-
-#code = """
-## Python line 21
-#"""
-
-
-
+    f.close()
+    if (args.run):
+        runAfterCompile = True
+    if (args.disk != ""):
+        #os.system("Compiler.py --os = " + args.disk)
+        f = open(args.disk, "r")
+        code += "\nHERE *" + (hex(DISK_START_LOC).replace("0x", "") + "\n")
+        code += f.read()
+        f.close()
 
 
 output = ""
@@ -188,7 +197,7 @@ for line in range(len(codeParts)):
 
             cleanOp = ""
             opcodeNum = ""
-
+            #print(ops[0])
             for op in range(1, len(ops)):
                 #print(ops[op])
                 if (ops[op] in defVars[0]):
@@ -795,12 +804,14 @@ for line in range(len(codeParts)):
                 #    throwError("SET overwrote compiled code", line)
 
             elif (ops[0] == "here"):
+                
                 expectArgs == 2
                 if (not (ops[1][0] == "*")):
                     throwError("HERE must assign a memory location", line)
                 else:
                     cleanOp1 = clean_operand(ops[1], line)
                     newCmdNum = int(("0x" + cleanOp1), 16)
+                    #print(hex(newCmdNum))
                     if (newCmdNum < cmdNum):
                         throwError("HERE overwrote compiled code", line)
                     elif (newCmdNum in setVars):

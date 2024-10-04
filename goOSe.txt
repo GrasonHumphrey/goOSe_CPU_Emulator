@@ -97,6 +97,7 @@ str s_os_read_error2 "error: 2nd arg (blocks) must be 1 byte"
 str s_write "write"
 str s_os_write_error2 "error: 2nd arg (data) must be 1 byte"
 str s_done "done."
+str s_os_run "run"
 
 # Make Goose character
 mov ar C
@@ -153,6 +154,15 @@ call keyprocess
 jmp mainloop
 
 halt
+
+####### Run function #######
+# Runs code starting at the given address
+# Syntax: RUN [address]
+func os_run
+
+
+ret
+
 
 
 ####### Write to memory function #######
