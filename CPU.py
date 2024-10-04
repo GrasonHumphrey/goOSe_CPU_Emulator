@@ -1919,7 +1919,7 @@ class instruction_register_control:
                             self.lbuff[0] = True
                         elif self.t == 8:
                             # Load lower byte of address to A from T1
-                            print(hex(self.data_bus[0]))
+                            #print(hex(self.data_bus[0]))
                             self.et[0] = True
                             self.lacc[0] = True
                         elif self.t == 9:
@@ -2086,7 +2086,7 @@ class instruction_register_control:
                             self.lbuff[0] = True
                         elif self.t == 8:
                             # Load lower byte of address to A from T1
-                            print(hex(self.data_bus[0]))
+                            #print(hex(self.data_bus[0]))
                             self.et[0] = True
                             self.lacc[0] = True
                         elif self.t == 9:

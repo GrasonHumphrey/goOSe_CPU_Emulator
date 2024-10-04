@@ -1,0 +1,33 @@
+
+str s_loading "loading..."
+
+# Print loading screen
+call blank_screen
+mov ar s_loading1
+mov $text1 ar
+mov ar s_loading2
+mov $text2 ar
+call printstr
+
+# Generate customs chars
+mov ar 3c
+mov *1300 ar
+mov ar 24
+mov *1301 ar
+mov ar 3c
+mov *1302 ar
+mov ar 18
+mov *1303 ar
+mov ar 7e
+mov *1304 ar
+mov ar 99
+mov *1305 ar
+mov ar 24
+mov *1306 ar
+mov ar 42
+mov *1307 ar
+
+# Hang system
+jmpo FF
+
+halt

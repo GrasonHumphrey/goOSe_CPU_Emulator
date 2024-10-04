@@ -485,8 +485,7 @@ ret
 
 
 ####### CLear Screen function ######
-# Clears the screen
-
+# Clears the screen and redraws UI
 func os_cls
 # Save Ar and Br
 #push ar
@@ -500,19 +499,8 @@ mov $cursor2 ar
 
 mov br 0
 
-loc cls_blank
 # Blank the screen
-mov ar 00
-stz $cursor1
-inc br
-jnz cls_blank
-mov ar $cursor2
-inc ar
-mov $cursor2 ar
-sub CURSOR2_BASE
-sub 4
-#io ar
-jnz cls_blank
+call blank_screen
 
 # Redraw UI
 mov ar CURSOR1_BASE
@@ -532,6 +520,25 @@ call newline
 
 ret
 
+####### Blank screen function #######
+# Blanks out the screen
+func blank_screen
+mov br 0
+
+loc blank_screen_start
+# Blank the screen
+mov ar 00
+stz $cursor1
+inc br
+jnz blank_screen_start
+mov ar $cursor2
+inc ar
+mov $cursor2 ar
+sub CURSOR2_BASE
+sub 4
+#io ar
+jnz blank_screen_start
+ret
 
 
 ####### STREQUALS function ########
