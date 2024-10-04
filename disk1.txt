@@ -27,7 +27,28 @@ mov *1306 ar
 mov ar 42
 mov *1307 ar
 
-# Hang system
-jmpo FF
 
-halt
+# Player data struct:
+def playerX *7000
+def playerY *7001
+def playerHealth *7001
+mov ar f
+mov playerX ar
+mov playerY ar
+mov ar ff
+mov playerHealth ar
+
+call blank_screen
+
+# Draw player to screen
+
+# Get input
+
+# Update player pos
+
+
+# Hang system
+jmpo fe
+
+io ar
+ret

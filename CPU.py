@@ -1369,6 +1369,7 @@ class instruction_register_control:
                             # Load instruction pointer low byte into A
                             self.eip[0] = True
                             self.lacc[0] = True
+                            self.clc[0] = True
                         elif self.t == 7:
                             # Add A and B and save to temp
                             if ((self.jmp and self.immeda) or 
@@ -1380,7 +1381,6 @@ class instruction_register_control:
                                 (self.jnc and self.immeda and not self.cf[0]) or
                                 (self.jc and self.swp and self.of[0]) or
                                 (self.jnc and self.swp and not self.of[0])):
-                                self.clc[0] = True
                                 self.ealu[0] = True
                                 self.lt1[0] = True
                                 self.sel[0] = 0

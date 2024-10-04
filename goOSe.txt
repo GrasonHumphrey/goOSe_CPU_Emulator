@@ -207,6 +207,8 @@ jnz os_run_error
 # No second argument given, call given address
 callz $text1
 
+call os_cls
+
 mov ar s_done1
 mov $text1 ar
 mov ar s_done2
@@ -492,21 +494,14 @@ func os_cls
 #swp
 #push ar
 
-mov ar CURSOR1_BASE
-mov $cursor1 ar
-mov ar CURSOR2_BASE
-mov $cursor2 ar
 
-mov br 0
+
 
 # Blank the screen
 call blank_screen
 
 # Redraw UI
-mov ar CURSOR1_BASE
-mov $cursor1 ar
-mov ar CURSOR2_BASE
-mov $cursor2 ar
+
 
 mov ar s_title1
 mov $text1 ar
@@ -523,6 +518,11 @@ ret
 ####### Blank screen function #######
 # Blanks out the screen
 func blank_screen
+mov ar CURSOR1_BASE
+mov $cursor1 ar
+mov ar CURSOR2_BASE
+mov $cursor2 ar
+
 mov br 0
 
 loc blank_screen_start
@@ -538,6 +538,12 @@ sub CURSOR2_BASE
 sub 4
 #io ar
 jnz blank_screen_start
+
+mov ar CURSOR1_BASE
+mov $cursor1 ar
+mov ar CURSOR2_BASE
+mov $cursor2 ar
+
 ret
 
 
