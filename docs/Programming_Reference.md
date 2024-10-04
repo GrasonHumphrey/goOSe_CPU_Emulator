@@ -180,6 +180,20 @@ Marks the start of a function.
 - Clock cycles: 34
 - Memory bytes: 3
 
+### CALLZ [$ZP]
+
+- Description: Call a function pointed to by given zero-page pointer.  Set new stack pointer and base pointer appropriately.
+- Opcode: JNZ && INCB (0xAD)
+- Clock cycles: 39
+- Memory bytes: 2
+
+### CALLZ Ar
+
+- Description: Call a function pointed to by zero-page pointer in A.  Set new stack pointer and base pointer appropriately.
+- Opcode: JNZ && AUX (0xAE)
+- Clock cycles: 36
+- Memory bytes: 1
+
 ### RET
 
 - Description: Return from a function.  Set new stack pointer and base pointer appropriately.
@@ -759,4 +773,3 @@ There are 256 character codes available, each with a size of 8x8 pixels.  Each c
   </a>
 
   The characters can be modified at runtime by modifying the Character ROM (see <a href="#memory-architecture">Memory Architecture</a>).  This can be used to create custom characters for applications such as tile-based games.  Graphics_Editor_GUI.py is a custom program to quickly create and view custom characters.
-  

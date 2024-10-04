@@ -730,11 +730,25 @@ for line in range(len(codeParts)):
             elif (ops[0] == "call"):
                 # Call function
                 expectArgs = 2
-                if ((ops[1][0] == "*" or ops[1][0] == "$") or (ops[1] in totalVars)):
+                if (ops[1][0] == "*" or (ops[1] in totalVars)):
                     cmdBytes.append("9d")
                     cmdBytes.append(clean_operand(ops[1], line))
                 else:
                     throwError("Can only call to memory location", line)
+
+            elif (ops[0] == "callz"):
+                # Call function at zero-page address
+                expectArgs = 2
+                shortZPAdr = True
+                if ((ops[1][0] == "$") or (ops[1] in totalVars)):
+                    # CALLZ <immed>
+                    cmdBytes.append("ad")
+                    cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    # CALLZ Ar
+                    cmdBytes.append("ae")
+                else:
+                    throwError("Must zero-page jump to zero-page location", line)
 
             elif (ops[0] == "ret"):
                 # Return from function

@@ -97,7 +97,9 @@ str s_os_read_error2 "error: 2nd arg (blocks) must be 1 byte"
 str s_write "write"
 str s_os_write_error2 "error: 2nd arg (data) must be 1 byte"
 str s_done "done."
+
 str s_os_run "run"
+str s_os_run_error1 "error: must use only 1 arg"
 
 # Make Goose character
 mov ar C
@@ -161,7 +163,72 @@ halt
 func os_run
 
 
+mov ar @_
+call readinput
+#io ar
+sub 4
+# Is the first argument 2 bytes?
+jz os_run_step1
+mov ar s_os_read_error11
+mov $text1 ar
+mov ar s_os_read_error12
+mov $text2 ar
+call printstr
+call newline
+call newline
 ret
+
+loc os_run_step1
+mov br 0
+ldz $instr1
+push ar
+mov br 1
+ldz $instr1
+call chartohex
+mov $text2 ar
+
+mov br 2
+ldz $instr1
+push ar
+mov br 3
+ldz $instr1
+call chartohex
+mov $text1 ar
+
+mov ar $instr1
+add 4
+mov $instr1 ar
+mov br 0
+ldz $instr1
+#io ar
+clc
+add 0
+jnz os_run_error
+# No second argument given, call given address
+callz $text1
+
+mov ar s_done1
+mov $text1 ar
+mov ar s_done2
+mov $text2 ar
+call printstr
+
+call newline
+call newline
+ret
+
+# More than one argument given, print error
+loc os_run_error
+mov ar s_os_run_error11
+mov $text1 ar
+mov ar s_os_read_error12
+mov $text2 ar
+call printstr
+call newline
+call newline
+ret
+
+
 
 
 
@@ -622,6 +689,17 @@ call strequals
 add 0
 jnz parseinput_write
 
+# Was run typed?
+mov ar s_os_run1
+mov $text1 ar
+mov ar s_os_run2
+mov $text2 ar
+mov ar instr1
+mov br @_
+call strequals
+add 0
+jnz parseinput_run
+
 # No recognized command
 mov ar s_commandnotrecognized1
 mov $text1 ar
@@ -656,6 +734,14 @@ mov ar $instr1
 add 6
 mov $instr1 ar
 call os_write
+jmp parseinput_end
+
+# "RUN" typed
+loc parseinput_run
+mov ar $instr1
+add 4
+mov $instr1 ar
+call os_run
 jmp parseinput_end
 
 loc parseinput_end
