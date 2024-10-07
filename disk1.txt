@@ -51,27 +51,34 @@ call blank_screen
 
 mov ar 7
 call malloc
-push ar
-swp
-push ar
-swp
-io ar
-io br
 
 mov ar 5
 call malloc
-io ar
-io br
-
-pop
+push ar
 swp
-pop
-call free
+push ar
+swp
+
 
 mov ar 2
 call malloc
-io ar
-io br
+push ar
+swp
+push ar
+swp
+
+mov ar 2
+call malloc
+
+peek 2
+swp
+peek 1
+call free
+
+peek 4
+swp
+peek 3
+call free
 
 # Hang system
 #jmpo fe
