@@ -213,6 +213,49 @@ ret
 
 
 
+####### Free function #######
+# Frees memory in the heap
+# Arguments:
+# Ar: Address of memory to free low byte
+# Br: Address of memory to free high byte
+# Local vars:
+# Peek 1: Address of memory to free next block low byte
+# Peek 2: Address of memory to free next block high byte
+# Peek 3: Local var to store next block low byte
+func free
+
+# Get starting address of header
+sub 2
+push ar
+clc
+sub 1
+mov $heap1 ar
+swp
+sub 0
+push ar
+mov $heap2 ar
+
+push 0
+
+# Set block to free
+mov br 0
+ldz $heap1
+and 7F
+stz $heap1
+
+
+
+
+# Reset heap to base
+mov ar heap1_base
+mov $heap1 ar
+mov ar heap2_base
+mov $heap2 ar
+
+ret
+
+
+
 ####### Malloc function #######
 # Allocates memory in the heap
 # Aguments:

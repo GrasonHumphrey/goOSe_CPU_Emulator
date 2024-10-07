@@ -50,8 +50,25 @@ call blank_screen
 # Update UI
 
 mov ar 7
+call malloc
+push ar
+swp
+push ar
+swp
 io ar
 io br
+
+mov ar 5
+call malloc
+io ar
+io br
+
+pop
+swp
+pop
+call free
+
+mov ar 2
 call malloc
 io ar
 io br
