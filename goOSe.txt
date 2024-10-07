@@ -86,6 +86,14 @@ set instr2 instr_base2
 def colorLoc1 *4401
 def colorLoc2 *4402
 
+def heap1 0E
+def heap2 0F
+def heap1_base 00
+def heap2_base 45
+
+set heap1 heap1_base
+set heap2 heap2_base
+
 str s_title "      goose cpu emulator "
 str s_cmd "cmd>"
 str s_exit "exit"
@@ -151,11 +159,234 @@ mov ar $keybuf2
 mov $commandstart2 ar
 clc
 
+call heap_init
+
 loc mainloop
 call keyprocess
 jmp mainloop
 
 halt
+
+
+####### Heap Initiate function #######
+# Set up the initial heap
+func heap_init
+
+# Set up block 1
+# Block has a size of 127 chunks and is free
+mov ar 7F
+mov br 0
+stz $heap1
+# Next free block has low byte of 00
+mov ar 00
+mov br 1
+stz $heap1
+# Next free block has high byte of 49
+mov ar 49
+mov br 2
+stz $heap1
+
+# Set up block 2
+mov $heap2 ar
+# Block has a size of 127 chunks and is free
+mov ar 7F
+mov br 0
+stz $heap1
+# Next free block has low byte of 00
+mov ar 00
+mov br 1
+stz $heap1
+# Next free block has high byte of 00
+mov ar 00
+mov br 2
+stz $heap1
+
+
+
+# Reset heap to base
+mov ar heap1_base
+mov $heap1 ar
+mov ar heap2_base
+mov $heap2 ar
+
+ret
+
+
+
+####### Malloc function #######
+# Allocates memory in the heap
+# Aguments:
+# Ar: Number of memory bytes to be allocated (max 252)
+# Returns:
+# Ar: Allocated memory address 1
+# Br: Allocated memory address 2
+# Local vars:
+# Peek 1: Amount of memory to be allocated/ Amount of chunks to be allocated
+# Peek 2: Low byte of next heap block address/Old block size
+func malloc
+push ar
+push 0
+
+loc malloc_start
+# Get the first byte from the heap block ([15] - block free.  [14:0] - block size in 8-byte chunks)
+mov br 0
+ldz $heap1
+# Check if the block is free
+swp
+mov ar 80
+and br
+jz malloc_blockfree
+# Block is in use, get address of next block
+mov br 1
+ldz $heap1
+poke 2
+mov br 2
+ldz $heap1
+mov $heap2 ar
+peek 2
+mov $heap1 ar
+jmp malloc_start
+
+# Free block found, is it big enough?
+loc malloc_blockfree
+# Block size in chunks is already in br
+mov ar 7F
+and br
+# Multiply by 8 to get byte size
+shl
+shl
+shl
+# Get the number of bytes we need to store
+swp
+peek 1
+sub br
+# If number of bytes to store - number of available bytes <= 0, space is available
+jm malloc_bigenough
+jz malloc_bigenough
+# Space is not available, get address of next block
+mov br 1
+ldz $heap1
+poke 2
+mov br 2
+ldz $heap1
+mov $heap2 ar
+peek 2
+mov $heap1 ar
+jmp malloc_start
+
+# Block is big enough, update block header
+loc malloc_bigenough
+# Save old block size
+mov br 0
+ldz $heap1
+poke 2
+# Calculate how many chunks must be allocated
+peek 1
+# 3 bytes always used for the header
+add 3
+# Make sure chunks are rounded up
+swp
+mov ar 0
+or br
+and 7
+swp
+jzo 2
+add 8
+# Chunks have a size of 8 bytes, right shift 3x
+shr
+shr
+shr
+poke 1
+# Bit 15 is 1 to set block not free
+or 80
+# Store new block size
+mov br 0
+stz $heap1
+
+# Move over old next block address
+# Move low byte
+mov br 1
+ldz $heap1
+swp
+peek 1
+shl
+shl
+shl
+add 1
+swp
+stz $heap1
+# Move high byte
+mov br 2
+ldz $heap1
+swp
+peek 1
+shl
+shl
+shl
+add 2
+swp
+stz $heap1
+
+# Recalculate and store size of old block
+peek 1
+swp
+peek 2
+sub br
+swp
+shl
+shl
+shl
+swp
+stz $heap1
+
+# Calculate address of next block
+# Calculate low byte
+mov ar $heap1
+swp
+peek 1
+shl
+shl
+shl
+add br
+mov br 1
+stz $heap1
+# Calculate high byte
+mov ar $heap1
+swp
+peek 1
+shl
+shl
+shl
+add br
+mov ar $heap2
+add 0
+mov br 2
+stz $heap1
+
+# Save address of newly allocated data
+mov ar $heap1
+add 3
+poke 1
+mov ar $heap1
+add 3
+mov ar $heap2
+add 0
+poke 2
+
+# Reset heap to base
+mov ar heap1_base
+mov $heap1 ar
+mov ar heap2_base
+mov $heap2 ar
+
+# Return address of newly allocated data in Ar and Br
+peek 2
+swp
+peek 1
+
+ret
+
+
 
 ####### Run function #######
 # Runs code starting at the given address

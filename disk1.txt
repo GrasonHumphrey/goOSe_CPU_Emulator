@@ -1,5 +1,6 @@
 
 str s_loading "loading..."
+str s_health "health: "
 
 # Print loading screen
 call blank_screen
@@ -46,9 +47,18 @@ call blank_screen
 
 # Update player pos
 
+# Update UI
+
+mov ar 7
+io ar
+io br
+call malloc
+io ar
+io br
 
 # Hang system
-jmpo fe
+#jmpo fe
+halt
 
 io ar
 ret

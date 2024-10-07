@@ -699,7 +699,8 @@ Marks the start of a function.
 | 0x1000 - 0x1FFF | Character ROM |
 | 0x2000 - 0x3FFF | Screen RAM |
 | 0x4000 - 0x4408 | Color RAM |
-| 0x5000 - 0x6FFF | Disk |
+| 0x4500 - 0x4D00 | Heap memory |
+| 0x5000 - 0x6FFF | Virtual Disk |
 
 ## Stack Architecture
 Example Stack:
