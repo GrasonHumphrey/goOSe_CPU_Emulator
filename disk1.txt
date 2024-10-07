@@ -69,16 +69,29 @@ swp
 
 mov ar 2
 call malloc
+push ar
+swp
+push ar
+swp
+
 
 peek 2
 swp
 peek 1
 call free
 
+peek 6
+swp
+peek 5
+call free
+
 peek 4
 swp
 peek 3
 call free
+
+mov ar 9
+call malloc
 
 # Hang system
 #jmpo fe

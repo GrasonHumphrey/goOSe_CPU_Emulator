@@ -224,6 +224,9 @@ ret
 # Peek 3: Local var to store next block low byte
 # Peek 4: Local var to store next block high byte
 # Peek 5: Local var to store block size
+# Peek 6: Local var
+# Peek 7: Local var
+
 func free
 
 # Get starting address of header
@@ -235,6 +238,8 @@ sub 0
 push ar
 mov $heap2 ar
 
+push 0
+push 0
 push 0
 push 0
 push 0
@@ -334,10 +339,10 @@ mov $heap2 ar
 
 mov br 1
 ldz $heap1
-poke 1
+poke 6
 mov br 2
 ldz $heap1
-poke 2
+poke 7
 
 mov br 0
 ldz $heap1
@@ -362,17 +367,98 @@ mov br 0
 peek 5
 stz $heap1
 # Store freed block next block
-peek 1
+peek 6
 mov br 1
 stz $heap1
-peek 2
+peek 7
 mov br 2
-stz $heap2
+stz $heap1
+
+# Make previous block freed block
+peek 3
+poke 1
+peek 4
+poke 2
 
 
-# Check if block after freed block is free
+# Check if next block after freed block is free
 loc free_checkblock2
+# Get next block
+peek 1
+mov $heap1 ar
+peek 2
+mov $heap2 ar
 
+mov br 1
+ldz $heap1
+poke 3
+mov br 2
+ldz $heap1
+poke 4
+
+mov $heap2 ar
+peek 3
+mov $heap1 ar
+
+# Is next block free?  If so, combine it
+mov br 0
+ldz $heap1
+swp
+mov ar 80
+and br
+jnz free_end
+
+# Next block is free, try to combine it
+# Get next block size
+mov ar 7F
+and br
+poke 5
+
+# Get next block next block
+mov br 1
+ldz $heap1
+poke 6
+mov br 2
+ldz $heap1
+poke 7
+
+# Get freed block size
+peek 1
+mov $heap1 ar
+peek 2
+mov $heap2 ar
+
+mov br 0
+ldz $heap1
+and 7F
+# Is the combined size less than max block size (7F)?
+swp
+peek 5
+add br
+sub 7F
+jp free_end
+# Combined size is less than 7F, combine blocks
+clc
+add 7F
+clc
+and 7F
+poke 5
+peek 1
+mov $heap1 ar
+peek 2
+mov $heap2 ar
+mov br 0
+peek 5
+stz $heap1
+# Store freed block next block
+peek 6
+mov br 1
+stz $heap1
+peek 7
+mov br 2
+stz $heap1
+
+loc free_end
 # Reset heap to base
 mov ar heap1_base
 mov $heap1 ar
