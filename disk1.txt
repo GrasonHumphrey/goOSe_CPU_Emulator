@@ -32,7 +32,47 @@ mov *1307 ar
 # Player data struct:
 def playerX *7000
 def playerY *7001
-def playerHealth *7001
+def playerHealth *7002
+
+# Each monster list element requires 5 bytes:
+# 0-1: Address of next monster
+# 2: X Pos
+# 3: Y Pos
+# 4: Health
+
+def MONSTER_DAT_SIZE 5
+def monstersHead1 *7020
+def monstersHead2 *7021
+def monstersTail1 *7022
+def monstersTail2 *7023
+
+set monstersHead1 0
+set monstersHead2 0
+set monstersTail1 0
+set monstersTail2 0
+
+def numMonsters *7024
+set numMonsters 0
+
+
+# Make test monsters
+mov ar 1
+mov br 2
+push 3
+call create_monster
+mov ar 4
+mov br 5
+call create_monster
+mov ar 6
+mov br 7
+call create_monster
+pop
+
+# Remove the head monster
+mov ar monstersTail1
+mov br monstersTail2
+call remove_monster
+
 mov ar f
 mov playerX ar
 mov playerY ar
@@ -43,59 +83,216 @@ call blank_screen
 
 # Draw player to screen
 
+# Draw monsters to screen
+
 # Get input
 
 # Update player pos
 
 # Update UI
 
-mov ar 7
-call malloc
-
-mov ar 5
-call malloc
-push ar
-swp
-push ar
-swp
-
-
-mov ar 2
-call malloc
-push ar
-swp
-push ar
-swp
-
-mov ar 2
-call malloc
-push ar
-swp
-push ar
-swp
-
-
-peek 2
-swp
-peek 1
-call free
-
-peek 6
-swp
-peek 5
-call free
-
-peek 4
-swp
-peek 3
-call free
-
-mov ar 9
-call malloc
 
 # Hang system
 #jmpo fe
 halt
 
 io ar
+ret
+
+
+####### Remove monster function #######
+# Arguments:
+# Ar: Monster to remove addr1
+# Br: Monster to remove addr2
+# Local vars:
+# Peek 1: Monster to remove addr1
+# Peek 2: Monster to remove addr2
+# Peek 3: Current monster addr1 
+# Peek 4: Current monster addr2
+
+func remove_monster
+push ar
+swp
+push ar
+swp
+push 0
+push 0
+
+# Walk list to find previous monster
+mov ar monstersHead1
+mov $jump1 ar
+mov ar monstersHead2
+mov $jump2 ar
+
+# Are we removing the head?
+peek 1
+mov br monstersHead1
+sub br
+jnz remove_monster_walkstart
+peek 2
+mov br monstersHead2
+sub br
+jnz remove_monster_walkstart
+# This is the head, make the next monster the new head
+mov br 0
+ldz $jump1
+mov monstersHead1 ar
+mov br 1
+ldz $jump1
+mov monstersHead2 ar
+jmp remove_monster_free
+
+loc remove_monster_walkstart
+mov br 0
+ldz $jump1
+poke 3
+mov br 1
+ldz $jump1
+poke 4
+swp
+peek 2
+sub br
+jz remove_monster_addr2match
+# Addr2 not match, move to next monster
+mov $jump2 br
+peek 3
+mov $jump1 ar
+jmp remove_monster_walkstart
+
+loc remove_monster_addr2match
+# Does addr1 match?
+peek 3
+swp
+peek 1
+sub br
+jz remove_monster_found
+# Addr1 not match, move to next monster
+mov $jump1 br
+peek 4
+mov $jump2 ar
+jmp remove_monster_walkstart
+
+loc remove_monster_found
+# Next monster is the monster to remove
+# Get the next monster after the monster to remove and assign it to the current monster
+peek 1
+mov $text1 ar
+peek 2
+mov $text2 ar
+mov br 0
+ldz $text1
+stz $jump1
+mov br 1
+ldz $text1
+stz $jump1
+
+# Are we removing the tail?
+peek 1
+mov br monstersTail1
+sub br
+jnz remove_monster_free
+peek 2
+mov br monstersTail2
+sub br
+jnz remove_monster_free
+# This is the tail, make the current monster the new tail
+mov ar $jump1
+mov monstersTail1 ar
+mov ar $jump2
+mov monstersTail2 ar
+mov ar 0
+mov br 0
+stz $jump1
+mov br 1
+stz $jump1
+
+# Free data for the monster that was removed
+loc remove_monster_free
+peek 2
+swp
+peek 1
+call free
+
+ret
+
+
+
+####### Create monster function #######
+# Arguments:
+# Ar: X Pos
+# Br: Y Pos
+# Peek FC: Health
+# Local vars:
+# Peek 1: X Pos
+# Peek 2: Y Pos
+func create_monster
+push ar
+swp
+push ar
+
+# Increment numMonsters
+mov ar numMonsters
+inc ar
+mov numMonsters ar
+
+# Allocate new monster space
+mov ar MONSTER_DAT_SIZE
+call malloc
+mov $jump1 ar
+mov $jump2 br
+
+# Set new monster data
+# X Pos
+mov br 2
+peek 1
+stz $jump1
+# Y Pos
+mov br 3
+peek 2
+stz $jump1
+# Health
+mov br 4
+peek FC
+stz $jump1
+# Next monster is NULL
+mov br 0
+mov ar 0
+stz $jump1
+mov br 1
+stz $jump1
+
+# Is the list empty? (Head node NULL)?
+mov ar monstersHead1
+mov br monstersHead2
+or br
+jz create_monster_empty
+# List not empty, append to tail
+# Put tail monster in text1
+mov ar monstersTail1
+mov $text1 ar
+mov ar monstersTail2
+mov $text2 ar
+# Set old tail next monster to new monster
+mov ar $jump1
+mov br 0
+stz $text1
+mov ar $jump2
+mov br 1
+stz $text1
+# Set tail to new monster
+mov ar $jump1
+mov monstersTail1 ar
+mov ar $jump2
+mov monstersTail2 ar
+ret
+
+loc create_monster_empty
+# List empty, set the head and tail
+mov ar $jump1
+mov monstersHead1 ar
+mov monstersTail1 ar
+mov ar $jump2
+mov monstersHead2 ar
+mov monstersTail2 ar
+
 ret
