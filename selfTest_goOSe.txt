@@ -1,0 +1,6 @@
+MOV Ar 34
+MOV Br 17
+ADD Br
+IO Ar
+IO Br
+HALT

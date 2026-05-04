@@ -56,22 +56,18 @@ set numMonsters 0
 
 
 # Make test monsters
-mov ar 1
-mov br 2
 push 3
-call create_monster
-mov ar 4
-mov br 5
-call create_monster
-mov ar 6
-mov br 7
-call create_monster
-pop
+push 2
+push 1
+push 3
+mov ar monstersHead1
+mov br monstersHead2
+call list_append
 
 # Remove the head monster
 mov ar monstersTail1
 mov br monstersTail2
-call remove_monster
+#call remove_monster
 
 mov ar f
 mov playerX ar
@@ -117,6 +113,11 @@ push ar
 swp
 push 0
 push 0
+
+# Decrement num monsters
+mov ar numMonsters
+dec ar
+mov numMonsters ar
 
 # Walk list to find previous monster
 mov ar monstersHead1

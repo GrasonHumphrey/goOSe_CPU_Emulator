@@ -24,14 +24,13 @@ DISK_START_LOC = 0x5000
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--os", type=str, default="goOSe.txt")
-    parser.add_argument("--run", type=bool, default=True)
+    parser.add_argument("--run", type=str, default="True")
     parser.add_argument("--disk", type=str, default="")
     args = parser.parse_args()
     f = open(args.os, "r")
     code = f.read()
     f.close()
-    if (args.run):
-        runAfterCompile = True
+    runAfterCompile = (args.run.lower() == "true")
     if (args.disk != ""):
         #os.system("Compiler.py --os = " + args.disk)
         f = open(args.disk, "r")
@@ -899,10 +898,12 @@ f = open("compiled_output.txt", "w")
 f.write(output)
 f.close()
 print
-print("Run after compile selected, CPU output: ")
-print
 
 if (runAfterCompile):
+    print("Run after compile selected, CPU output: ")
+    print
     filename = 'CPU.py'
     with open(filename) as file:
         exec(file.read())
+else:
+    print("Compile without running finished.")

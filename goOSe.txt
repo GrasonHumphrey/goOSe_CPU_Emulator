@@ -167,10 +167,109 @@ jmp mainloop
 
 halt
 
+####### List append function #######
+# List tail must be immediately after list head in memory
+# Arguments:
+# Ar: List head addr1
+# Br: List head addr2
+# Peek FC: Number of bytes to add as data (minimum 1)
+# Peek FB: Data 1
+# Peek FA: Data 2
+# ...
+# Local vars:
+# Peek 1: 
+# Peek 2: 
+func list_append
+# Use heap1 to hold list head location
+mov $heap1 ar
+mov $heap2 br
+
+# Allocate new space
+peek FC
+# Each node needs 2 extra bytes to point to the next node
+add 2
+call malloc
+mov $jump1 ar
+mov $jump2 br
+
+# Set new node data
+mov br FB
+
+loc list_append_writedata
+# Store the data
+peek br
+mov br 2
+stz $jump1
+# See if we've stored all the data
+inc br
+peek FC
+sub br
+sub 2
+jz list_append_datafinished
+# We haven't stored all the data, set up for next byte
+mov ar FD
+sub br
+io ar
+swp
+jmp list_append_writedata
+
+
+# Next node is NULL
+loc list_append_datafinished
+mov br 0
+mov ar 0
+stz $jump1
+mov br 1
+stz $jump1
+
+# Is the list empty? (Head node NULL)?
+mov ar $heap1
+mov br $heap2
+or br
+jz list_append_empty
+# List not empty, append to tail
+# Put tail node in text1
+mov ar $heap1
+mov $text1 ar
+mov ar $heap2
+mov $text2 ar
+# Set old tail node to new node
+mov ar $jump1
+mov br 0
+stz $text1
+mov ar $jump2
+mov br 1
+stz $text1
+# Set tail to new node
+mov ar $jump1
+mov br 0
+stz $heap1
+mov ar $jump2
+mov br 1
+stz $heap1
+ret
+
+loc list_append_empty
+# List empty, set the head and tail
+mov ar $jump1
+mov monstersHead1 ar
+mov monstersTail1 ar
+mov ar $jump2
+mov monstersHead2 ar
+mov monstersTail2 ar
+
+ret
+
 
 ####### Heap Initiate function #######
 # Set up the initial heap
 func heap_init
+
+# Reset heap to base
+mov ar heap1_base
+mov $heap1 ar
+mov ar heap2_base
+mov $heap2 ar
 
 # Set up block 1
 # Block has a size of 127 chunks and is free
@@ -482,6 +581,12 @@ ret
 func malloc
 push ar
 push 0
+
+# Reset heap to base
+mov ar heap1_base
+mov $heap1 ar
+mov ar heap2_base
+mov $heap2 ar
 
 loc malloc_start
 # Get the first byte from the heap block ([15] - block free.  [14:0] - block size in 8-byte chunks)
