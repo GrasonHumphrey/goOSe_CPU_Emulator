@@ -72,14 +72,14 @@ void Update_ALU(Arithmetic_Logic_Unit *alu)
             }
         }
         if (*(alu->sel) == 0x2){
-            // Bit shift left
+            // Bit shift A left
             //result = (alu->alu_in_a << alu->alu_in_b)
             int result = (*(alu->alu_in_a) << 1);
             alu->data = result & 0xFF;
             *(alu->cf) = result > 0xFF;
         }
         if (*(alu->sel) == 0x3){
-            // Bit shift right
+            // Bit shift A right
             //result = (*(alu->alu_in_a) >> alu->alu_in_b)
             int result = (*(alu->alu_in_a) >> 1);
             alu->data = result & 0xFF;
@@ -139,10 +139,24 @@ void Update_ALU(Arithmetic_Logic_Unit *alu)
         if (*(alu->sel) == 0xB){
             // NOT A
             alu->data = (~*(alu->alu_in_a)) & 0xFF;
+            //printf("NOT A: %02X\n", alu->data);
         }
         if (*(alu->sel) == 0xC){
             // NOT B
             alu->data = (~*(alu->alu_in_b)) & 0xFF;
+            //printf("NOT B: %02X\n", alu->data);
+        }
+        if (*(alu->sel) == 0xD){
+            // Bit shift B left
+            int result = (*(alu->alu_in_b) << 1);
+            alu->data = result & 0xFF;
+            *(alu->cf) = result > 0xFF;
+        }
+        if (*(alu->sel) == 0xE){
+            // Bit shift B right
+            int result = (*(alu->alu_in_b) >> 1);
+            alu->data = result & 0xFF;
+            *(alu->cf) = result < 0;
         }
         if (*(alu->ealu)){
             *(alu->data_bus) = alu->data;

@@ -119,6 +119,13 @@ Marks the start of a function.
 - Clock cycles: 4
 - Memory bytes: 1
 
+### DUMP
+
+- Description: Dump memory to file
+- Opcode: IO && IMMEDA (0x33)
+- Clock cycles: 4
+- Memory bytes: 1
+
 </details>
 
 <details>
@@ -241,17 +248,17 @@ Marks the start of a function.
 - Clock cycles: 5
 - Memory bytes: 1
 
-### SHL
+### SHL [Ar/Br]
 
-- Description: Bit shift left A register 1 bit
-- Opcode: LOG && SHL (0x28)
+- Description: Bit shift left A/B register 1 bit
+- Opcode: LOG/IO && SHL (0x28/0x38)
 - Clock cycles: 5
 - Memory bytes: 1
 
-### SHR
+### SHR [Ar/Br]
 
-- Description: Bit shift right A register 1 bit
-- Opcode: LOG && SHR (0x29)
+- Description: Bit shift right A/B register 1 bit
+- Opcode: LOG/IO && SHR (0x29/0x39)
 - Clock cycles: 5
 - Memory bytes: 1
 
@@ -311,10 +318,10 @@ Marks the start of a function.
 - Clock cycles: 11
 - Memory bytes: 2
 
-### NOT
+### NOT [Ar/Br]
 
-- Description: Bitwise NOT A register
-- Opcode: LOG && IMMEDB (0x24)
+- Description: Bitwise NOT A or B register
+- Opcode: LOG && IMMEDB/AUX (0x24/0x2E)
 - Clock cycles: 5
 - Memory bytes: 1
 

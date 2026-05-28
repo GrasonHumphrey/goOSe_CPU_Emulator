@@ -1,5 +1,9 @@
 #include "instruction_register_control.h"
 #include "reg_8_bit.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
 
 void ResetOutputs_IRC(Instruction_Register_Control *irc)
 {
@@ -222,17 +226,22 @@ bool ZeroOperandOpcode_IRC(Instruction_Register_Control *irc)
             irc->halt ||
             (irc->log && irc->shl) ||
             (irc->log && irc->shr) ||
+            (irc->io && irc->shl) ||
+            (irc->io && irc->shr) ||
             (irc->log && irc->mema) ||
             (irc->log && irc->memb) ||
             (irc->log && irc->immeda) ||
             (irc->log && irc->immedb) ||
+            (irc->log && irc->aux) ||
             (irc->io && irc->mema) ||
             (irc->io && irc->memb) ||
+            (irc->io && irc->immeda) ||
             (irc->jmp && irc->deca) ||
             (irc->jmp && irc->aux) ||
             (irc->add && irc->stora) ||
             (irc->jmp && irc->decb) ||
             (irc->mov && irc->inca) ||
+            (irc->mov && irc->incb) ||
             (irc->jmp && irc->inca) ||
             (irc->jmp && irc->immedb) ||
             (irc->jz && irc->immedb) ||  // Jump to offset if zero
@@ -319,7 +328,7 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
         // Opcode Fetch
         if (irc->ff == 0 && irc->tf == 0)
         {
-            //printf ("op fetch");
+            //printf ("op fetch\n");
             if (irc->t == 0)
             {
                 ResetOutputs_IRC(irc);
@@ -342,7 +351,7 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                 {
                     // Opcode with no operand, continue to execute
                     irc->tf = true;
-                    // printf("Zero operand opcode")
+                    //printf("Zero operand opcode\n");
                 }
                 else
                 {
@@ -1595,6 +1604,8 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                 }
                 else if (((irc->log && irc->shl) ||
                           (irc->log && irc->shr) ||
+                          (irc->io && irc->shl) ||
+                          (irc->io && irc->shr) ||
                           (irc->log && irc->inca) ||
                           (irc->log && irc->incb) ||
                           (irc->log && irc->deca) ||
@@ -1602,7 +1613,8 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                           (irc->log && irc->mema) ||
                           (irc->log && irc->memb) ||
                           (irc->log && irc->immeda) ||
-                          (irc->log && irc->immedb)))
+                          (irc->log && irc->immedb) ||
+                          (irc->log && irc->aux)))
                 {
                     if (irc->t == 3)
                     {
@@ -1610,13 +1622,29 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                         *(irc->lacc) = true;
                         if (irc->log && irc->shl)
                         {
-                            // Left shift
+                            // Left shift A
+                            //printf("left shift\n");
                             *(irc->sel) = 2;
                         }
                         else if (irc->log && irc->shr)
                         {
-                            // Right shift
+                            // Right shift A
                             *(irc->sel) = 3;
+                        }
+                        else if (irc->io && irc->shl)
+                        {
+                            // Left shift B
+                            //printf("left shift\n");
+                            *(irc->sel) = 0xD;
+                            *(irc->lacc) = false;
+                            *(irc->lbuff) = true;
+                        }
+                        else if (irc->io && irc->shr)
+                        {
+                            // Right shift B
+                            *(irc->sel) = 0xE;
+                            *(irc->lacc) = false;
+                            *(irc->lbuff) = true;
                         }
                         else if (irc->log && irc->inca)
                         {
@@ -1662,12 +1690,19 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                             // ! A
                             *(irc->sel) = 0xB;
                         }
-                        else if (irc->t == 4)
+                        else if (irc->log && irc->aux)
                         {
-                            irc->treset = true;
+                            // ! B
+                            *(irc->sel) = 0xC;
+                            *(irc->lacc) = false;
+                            *(irc->lbuff) = true;
                         }
                     }
-
+                    else if (irc->t == 4)
+                    {
+                        irc->treset = true;
+                    }
+                    
                     // One operand ALU operations
                 }
                 else if (((irc->log && irc->stora) ||
@@ -1740,6 +1775,50 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                         printf("Clock cycles: %d\n", totalCycles);
                         printf("B REG: %02X\n", buff->data);
                         printf("--------------\n");
+                    }
+                    // DUMP memory
+                }
+                else if (irc->io && irc->immeda)
+                {
+                    if (irc->t == 3)
+                    {
+                        irc->treset = true;
+                        // Do memory dump
+                        FILE *fptr;
+
+                        // Complicated string stuff to get a nice filename
+                        const int cyclesSize = ((int) (log10(totalCycles)) + 1) * sizeof(char);
+                        char *cyclesStr = malloc(cyclesSize);
+                        sprintf(cyclesStr, "%d", totalCycles);
+                        char *fileStart = "dump_";
+                        char *fileEnd = ".txt";
+                        char *fileName = malloc(strlen(fileStart) + cyclesSize + strlen(fileEnd) + 1);
+                        memcpy(fileName, fileStart, strlen(fileStart));
+                        memcpy(fileName + strlen(fileStart), cyclesStr, cyclesSize);
+                        memcpy(fileName + strlen(fileStart) + cyclesSize, fileEnd, strlen(fileEnd) + 1); // len2 + 1 copies the null terminator too
+
+                        // Open a file in writing mode
+                        fptr = fopen(fileName, "w");
+                        // Write memory to file
+                        for (int i = 0; i < (irc->ramSize/16); i++)
+                        {
+                            char *addrStr[4 * sizeof(char) + 1];
+                            sprintf(addrStr, "%04X", i * 16);
+                            fprintf(fptr, addrStr);
+                            fprintf(fptr, ": ");
+                            for (int j = 0; j < 16; j++)
+                            {
+                                char *byteStr[2 * sizeof(char) + 1];
+                                sprintf(byteStr, "%02X", irc->ramMem[i * 16 + j]);
+                                fprintf(fptr, byteStr);
+                                fprintf(fptr, " ");
+                            }
+                            
+                            fprintf(fptr, "\n");
+                        }
+                        // Close the file
+                        fclose(fptr);
+                        free(cyclesStr);
                     }
                     // CALL Function
                 }
@@ -2706,7 +2785,7 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                 }
                 else if (irc->jmp && irc->aux)
                 {
-                    // printf("A reg peek")
+                    //printf("A reg peek");
                     if (irc->t == 3)
                     {
                         // Save A
@@ -2803,6 +2882,7 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                     {
                         // Call finished
                         irc->treset = true;
+                        printf("Peek Br finished\n");
                     }
                     // Poke A to <immed> BP offset
                 }
@@ -3137,7 +3217,6 @@ void Update_IRC(Instruction_Register_Control *irc, Reg_8_Bit *acc, Reg_8_Bit *bu
                     {
                         // Push finished
                         irc->treset = true;
-                        // printf("Finish reg push")
                     }
                     // Push <immed> to SP
                 }

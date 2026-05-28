@@ -55,6 +55,17 @@ struct instruction_register_control
     bool *clc;
     bool *linst;
     bool *systemHalt;
+    int *ramMem;
+    int *charMem;
+    int *screenMem;
+    int *colorMem;
+    int charMemSize;
+    int screenMemSize;
+    int colorMemSize;
+    int charMemLoc;
+    int screenMemLoc;
+    int colorMemLoc;
+    int ramSize;
 
     // Opcode signals
     bool mema;

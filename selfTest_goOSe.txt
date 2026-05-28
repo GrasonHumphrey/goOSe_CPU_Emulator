@@ -1,6 +1,493 @@
+def current_test *00
+set current_test 00
+
+set *01 93
+
+# 1: Test MOV Ar immed and SUB immed
+MOV Ar 1
+MOV current_test Ar
+#IO Ar
+
 MOV Ar 34
-MOV Br 17
+SUB 34
+JNZ selftest_fail
+
+
+#2: Test JNZ
+MOV Ar 2
+MOV current_test Ar
+#IO Ar
+
+MOV Ar F8
+SUB 57
+JNZ selftest_test3
+JMP selftest_fail
+
+######################
+# ALU tests
+######################
+
+# 3: Test ADD immed
+loc selftest_test3
+MOV Ar 3
+MOV current_test Ar
+#IO Ar
+
+MOV Ar 23
+ADD 91
+SUB B4
+JNZ selftest_fail
+
+
+#4: Test SUB Br and MOV Br immed
+MOV Ar 4
+MOV current_test Ar
+#IO Ar
+
+MOV Ar 23
+MOV Br 23
+SUB Br
+JNZ selftest_fail
+
+#5: Test ADD Br
+MOV Ar 5
+MOV current_test Ar
+IO Ar
+
+MOV Ar 95
+MOV Br 33
 ADD Br
+SUB C8
+JNZ selftest_fail
+
+
+#6: Test SHL Ar
+MOV Ar 6
+MOV current_test Ar
+IO Ar
+
+MOV Ar 5F
+SHL Ar
+SUB BE
+JNZ selftest_fail
+
+
+#7: Test SHR Ar
+MOV Ar 7
+MOV current_test Ar
+IO Ar
+
+MOV Ar D3
+SHR Ar
+ADD 97
+JNZ selftest_fail
+
+
+#8: Test INC Ar
+MOV Ar 8
+MOV current_test Ar
+IO Ar
+
+MOV Ar 0F
+INC Ar
+SUB 10
+JNZ selftest_fail
+
+
+#9: Test DEC Ar
+MOV Ar 9
+MOV current_test Ar
+IO Ar
+
+MOV Ar 76
+DEC Ar
+SUB 75
+JNZ selftest_fail
+
+
+#A: Test SWP
+MOV Ar A
+MOV current_test Ar
+IO Ar
+
+MOV Ar C3
+MOV Br 39
+SWP
+SUB 39
+JNZ selftest_fail
+
+
+#B: Test INC Br
+MOV Ar B
+MOV current_test Ar
+IO Ar
+
+MOV Br 4D
+INC Br
+SWP
+SUB 4E
+JNZ selftest_fail
+
+
+#C: Test DEC Br
+MOV Ar C
+MOV current_test Ar
+IO Ar
+
+MOV Br 97
+DEC Br
+SWP
+SUB 96
+JNZ selftest_fail
+
+
+#D: Test AND Br
+MOV Ar D
+MOV current_test Ar
+IO Ar
+
+MOV Ar C7
+MOV Br 9E
+AND Br
+SUB 86
+JNZ selftest_fail
+
+
+#E: Test AND immed
+MOV Ar E
+MOV current_test Ar
+IO Ar
+
+MOV Ar 3F
+AND F7
+SUB 37
+JNZ selftest_fail
+
+
+#F: Test OR Br
+MOV Ar F
+MOV current_test Ar
+IO Ar
+
+MOV Ar 62
+MOV Br E5
+OR Br
+SUB E7
+JNZ selftest_fail
+
+
+#10: Test OR immed
+MOV Ar 10
+MOV current_test Ar
+IO Ar
+
+MOV Ar DA
+OR 21
+SUB FB
+JNZ selftest_fail
+
+
+#11: Test XOR Br
+MOV Ar 11
+MOV current_test Ar
+IO Ar
+
+MOV Ar A5
+MOV Br E2
+XOR Br
+SUB 47
+JNZ selftest_fail
+
+
+#12: Test XOR immed
+MOV Ar 12
+MOV current_test Ar
+IO Ar
+
+MOV Ar 36
+XOR 58
+SUB 6E
+JNZ selftest_fail
+
+
+#13: Test NOT Ar
+MOV Ar 13
+MOV current_test Ar
+IO Ar
+
+MOV Ar B6
+NOT Ar
+SUB 49
+JNZ selftest_fail
+
+
+#14: Test NOT Br
+MOV Ar 14
+MOV current_test Ar
+IO Ar
+
+MOV Br 25
+NOT Br
+SWP
+SUB DA
+JNZ selftest_fail
+
+
+#15: Test SHL Ar
+MOV Ar 15
+MOV current_test Ar
+IO Ar
+
+MOV Br 5A
+SHL Br
+SWP
+SUB B4
+JNZ selftest_fail
+
+
+#16: Test SHR Ar
+MOV Ar 16
+MOV current_test Ar
+IO Ar
+
+MOV Br 34
+SHR Br
+SWP
+SUB 1A
+JNZ selftest_fail
+
+
+######################
+# Mem operations tests
+######################
+
+
+#17: Test MOV Ar MEM
+MOV Ar 17
+MOV current_test Ar
+IO Ar
+
+MOV Ar *01
+SUB 93
+JNZ selftest_fail
+
+
+#18: Test MOV Br MEM
+MOV Ar 18
+MOV current_test Ar
+IO Ar
+
+MOV Br *01
+SWP
+SUB 93
+JNZ selftest_fail
+
+
+#19: Test MOV MEM Ar
+MOV Ar 19
+MOV current_test Ar
+IO Ar
+
+MOV Ar 48
+MOV *01 Ar
+MOV Br *01
+SWP
+SUB 48
+JNZ selftest_fail
+
+
+#1A: Test MOV MEM Br
+MOV Ar 1A
+MOV current_test Ar
+IO Ar
+
+MOV Br EC
+MOV *01 Br
+MOV Ar *01
+SUB EC
+JNZ selftest_fail
+
+
+#1B: Test LDO MEM
+MOV Ar 1B
+MOV current_test Ar
+IO Ar
+
+MOV Br 1
+LDO *00
+SUB EC
+JNZ selftest_fail
+
+
+#1C: Test STO MEM
+MOV Ar 1C
+MOV current_test Ar
+IO Ar
+
+MOV Br FF
+MOV Ar 46
+STO *02
+MOV AR *01
+SUB 46
+JNZ selftest_fail
+
+
+#1D: Test LDZ $ZP
+MOV Ar 1D
+MOV current_test Ar
+IO Ar
+
+set *7FF5 8F
+MOV Ar F0
+MOV *01 Ar
+MOV Ar 7F
+MOV *02 Ar
+MOV Br 5
+LDZ $01
+SUB 8F
+JNZ selftest_fail
+
+
+#1E: Test LDZ Ar
+MOV Ar 1E
+MOV current_test Ar
+IO Ar
+
+set *7FF6 E2
+MOV Ar 01
+MOV Br 6
+LDZ Ar
+SUB E2
+JNZ selftest_fail
+
+
+#1F: Test STZ $ZP
+MOV Ar 1F
+MOV current_test Ar
+IO Ar
+
+MOV Ar F1
+MOV *01 Ar
+MOV Ar 7F
+MOV *02 Ar
+MOV Ar E9
+MOV Br 2
+STZ $01
+MOV Ar 01
+LDZ Ar
+SUB E9
+JNZ selftest_fail
+
+
+########################
+# Stack operations tests
+########################
+
+#20: Test PUSH Ar
+MOV Ar 20
+MOV current_test Ar
+IO Ar
+
+MOV Ar AC
+PUSH Ar
+MOV Br *E00
+SUB Br
+JNZ selftest_fail
+
+
+#21: Test POP
+MOV Ar 21
+MOV current_test Ar
+IO Ar
+
+POP
+SUB AC
+JNZ selftest_fail
+
+
+#22: Test PUSH IMMED
+MOV Ar 22
+MOV current_test Ar
+IO Ar
+
+PUSH 53
+POP
+SUB 53
+JNZ selftest_fail
+
+
+#23: Test PEEK Br
+MOV Ar 23
+MOV current_test Ar
+IO Ar
+
+PUSH F7
+PUSH 46
+PUSH 99
+POP
+MOV Br 01
+PEEK Br
+SUB F7
+JNZ selftest_fail
+
+
+#24: Test PEEK IMMED
+MOV Ar 24
+MOV current_test Ar
+IO Ar
+
+PEEK 2
+SUB 46
+JNZ selftest_fail
+
+
+#25: Test POKE Br
+MOV Ar 25
+MOV current_test Ar
+IO Ar
+
+MOV Br 02
+MOV Ar 06
+POKE Br
+MOV Ar 00
+POP
+SUB 06
+JNZ selftest_fail
+
+
+#26: Test POKE IMMED
+MOV Ar 26
+MOV current_test Ar
+IO Ar
+
+MOV Ar 5F
+POKE 1
+MOV Ar 0
+POP
+SUB 5F
+JNZ selftest_fail
+
+
+#27: Test CALL MEM
+MOV Ar 27
+MOV current_test Ar
+IO Ar
+
+
+
+
+# Pass self test
+MOV Ar 0
+IO Ar
+DUMP
+
+HALT
+
+
+loc selftest_fail
+MOV Ar current_test
 IO Ar
 IO Br
+DUMP
+
 HALT

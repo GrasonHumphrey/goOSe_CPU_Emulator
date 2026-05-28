@@ -33,13 +33,14 @@ Instruction_Register_Control irc;
 #define SCREEN_MEM_LOC 0x2000
 #define COLOR_MEM_LOC 0x4000
 
-#define RAM_SIZE_BYTES 0x8000
+#define RAM_SIZE 0x8000
 
 
 bool clk;
 int totalCycles;
 
 // Declare memory
+int ramMem[RAM_SIZE];
 int charMem[CHAR_MEM_SIZE];
 int screenMem[SCREEN_MEM_SIZE];
 int colorMem[COLOR_MEM_SIZE];
@@ -133,7 +134,7 @@ int main()
     ab.data_bus = &data_bus;
     ab.reset = &reset;
     ab.prevclk = false;
-    ab.memory = malloc(RAM_SIZE_BYTES * sizeof(int));
+    ab.memory = ramMem;
 
     // Temporary Register
     tr.lt1 = &lt1;
@@ -167,6 +168,7 @@ int main()
     sp.data_bus = &data_bus;
     sp.adr_bus = &adr_bus;
     sp.prevclk = false;
+    sp.adr = STACK_PTR_START;
 
     // Base Pointer Register
     bp.lt1 = &lbp1;
@@ -178,6 +180,7 @@ int main()
     bp.data_bus = &data_bus;
     bp.adr_bus = &adr_bus;
     bp.prevclk = false;
+    bp.adr = STACK_PTR_START;
 
     // ALU
     alu.clk = &clk;
@@ -258,6 +261,17 @@ int main()
     irc.clc = &clc;
     irc.linst = &linst;
     irc.systemHalt = &systemHalt;
+    irc.ramMem = ramMem;
+    irc.charMem = charMem;
+    irc.screenMem = screenMem;
+    irc.colorMem = colorMem;
+    irc.ramSize = RAM_SIZE;
+    irc.charMemSize = CHAR_MEM_SIZE;
+    irc.charMemLoc = CHAR_MEM_LOC;
+    irc.screenMemSize = SCREEN_MEM_SIZE;
+    irc.screenMemLoc = SCREEN_MEM_LOC;
+    irc.colorMemSize = COLOR_MEM_SIZE;
+    irc.colorMemLoc = COLOR_MEM_LOC;
     irc.data = 0;
     irc.mema = false;
     irc.memb = false;
@@ -296,11 +310,11 @@ int main()
  
     Load_Memory_From_File(&ab);
     
-    while (!systemHalt && totalCycles < 100)
+    while (!systemHalt)
     {
         Toggle_CLK();
         totalCycles += 1;
-        //printf("Clock cycles: %d, ip.adr: %02X\n", totalCycles, ip.adr);
+        //printf("Toggle CLK\n");
     }
 }
 

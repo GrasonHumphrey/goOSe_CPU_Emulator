@@ -600,13 +600,23 @@ for line in range(len(codeParts)):
 
             elif (ops[0] == "shl"):
                 # Left shift
-                expectArgs = 1
-                cmdBytes.append("28")
+                expectArgs = 2
+                if(ops[1] == "ar"):
+                    cmdBytes.append("28")
+                elif (ops[1] == "br"):
+                    cmdBytes.append("38")
+                else:
+                    throwError("Invalid reg to shl: " + ops[1], line)
 
             elif (ops[0] == "shr"):
                 # Right shift
-                expectArgs = 1
-                cmdBytes.append("29")
+                expectArgs = 2
+                if(ops[1] == "ar"):
+                    cmdBytes.append("29")
+                elif (ops[1] == "br"):
+                    cmdBytes.append("39")
+                else:
+                    throwError("Invalid reg to shr: " + ops[1], line)
 
             elif (ops[0] == "and"):
                 expectArgs = 2
@@ -650,6 +660,8 @@ for line in range(len(codeParts)):
                 expectArgs = 2
                 if (ops[1] == "ar"):
                     cmdBytes.append("24")
+                elif (ops[1] == "br"):
+                    cmdBytes.append("2e")
 
             elif (ops[0] == "dec"):
                 expectArgs = 2
@@ -696,6 +708,8 @@ for line in range(len(codeParts)):
                 if ((ops[1][0] == "$") or (ops[1] in totalVars)):
                     cmdBytes.append("0b")
                     cmdBytes.append(clean_operand(ops[1], line))
+                elif (ops[1] == "ar"):
+                    cmdBytes.append("0d")
                 else:
                     throwError("Can only zero-page store to zero-page location", line)
                 
@@ -725,6 +739,11 @@ for line in range(len(codeParts)):
                     cmdBytes.append("32")
                 else:
                     throwError("Invalid IO (invalid register)", line)
+
+            elif (ops[0] == "dump"):
+                # Memory dump
+                expectArgs = 1
+                cmdBytes.append("33")
 
             elif (ops[0] == "call"):
                 # Call function
